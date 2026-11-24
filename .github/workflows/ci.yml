@@ -7,7 +7,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Database tests (throwaway Postgres)
-        run: ./scripts/test-db.sh
+        run: bash scripts/test-db.sh   # 'bash' so it runs even if the file lost its executable bit on Windows
   web:
     runs-on: ubuntu-latest
     defaults: { run: { working-directory: web } }

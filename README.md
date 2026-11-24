@@ -21,7 +21,7 @@ Demo logins: `0400 000 001` (driver phone), `admin@demo.local`, `office@demo.loc
 ## Tests
 
 ```bash
-./scripts/test-db.sh          # database: roles, row level security, query console, timesheet lock
+bash scripts/test-db.sh       # database: roles, row level security, query console, timesheet lock
 cd web && npm test            # unit: km matching, timesheets, spreadsheet import, phone numbers, demo access rules
 cd web && npm run e2e         # end to end: driver flow, admin adds a login
 ```
