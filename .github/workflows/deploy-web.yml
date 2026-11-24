@@ -1,8 +1,9 @@
 name: Deploy web app (GitHub Pages)
 # Publishes the built app to GitHub Pages from main. For a private repo this needs a paid GitHub plan;
 # otherwise use any static host (Azure Static Web Apps, Netlify, Vercel) with the same `web/dist` folder.
+# Manual only for now (Kimberley is choosing between GitHub Pages and Azure Static Web Apps).
+# To use Pages: Settings > Pages > Source = GitHub Actions, then put the push trigger back.
 on:
-  push: { branches: [main] }
   workflow_dispatch:
 permissions: { contents: read, pages: write, id-token: write }
 jobs:

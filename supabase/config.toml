@@ -6,6 +6,5 @@ major_version = 17
 site_url = "http://localhost:5173"
 [auth.sms]
 enable_signup = true
-# Test numbers sign in with a fixed code and send no SMS (local stack only). Add the same in the dashboard for the hosted project.
-[auth.sms.test_otp]
-61400000001 = "123456"
+# Do NOT add [auth.sms.test_otp] here: if this file is deployed to the hosted project,
+# a fixed test code would let anyone sign in as that number. Set test numbers in the dashboard only, and remove them after testing.
