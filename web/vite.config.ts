@@ -10,12 +10,16 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icon.svg'],
+      includeAssets: ['icon.svg', 'apple-touch-icon.png', 'brand/*.png'],
       manifest: {
-        name: 'Coho Trucking PoC', short_name: 'Coho Trucking',
-        description: 'Proof of concept: dockets, km and timesheets for Coho trucking',
-        theme_color: '#1f3864', background_color: '#ffffff', display: 'standalone',
-        start_url: './', icons: [{ src: 'icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' }],
+        name: 'Coho Drive', short_name: 'Coho Drive',
+        description: 'Coho Drive: dockets, km and timesheets for Coho drivers (proof of concept)',
+        theme_color: '#141319', background_color: '#ffffff', display: 'standalone',
+        start_url: './', icons: [
+          { src: 'icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+        ],
       },
       workbox: { navigateFallback: 'index.html', maximumFileSizeToCacheInBytes: 5_000_000 },
     }),

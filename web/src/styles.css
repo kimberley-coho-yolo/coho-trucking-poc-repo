@@ -1,68 +1,78 @@
 /* Mobile first: large touch targets (min 44px), readable in a cab, works with gloves where possible. */
-:root { --navy:#1f3864; --blue:#2e5597; --bg:#f6f7fb; --line:#d9dde7; --ok:#1e7b34; --err:#b42318; font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color:#1a1a1a; background:var(--bg); }
+/* Coho Group Brand Guidelines v1.0 (Nov 2026): Arial only; Coho Red #EC1B2D is the accent (about 10%),
+   Coho Black #141319, Slate Grey #6E6E6E, Light Grey #F2F2F2. Never #FF0000 or any other red.
+   Coho Red on white is 4.41:1, just under WCAG AA 4.5:1 for normal text, so red is used for large
+   headings, rules, borders and the split bar; body-size text and button labels stay Coho Black or white on black. */
+:root { --coho-red:#EC1B2D; --coho-black:#141319; --slate:#6E6E6E; --light:#F2F2F2;
+  --navy:var(--coho-black); --blue:var(--coho-black); --bg:#ffffff; --line:#dcdcdc; --ok:#1e7b34; --err:var(--coho-red);
+  font-family: Arial, Helvetica, sans-serif; color:var(--coho-black); background:var(--bg); }
 * { box-sizing: border-box; }
 body { margin:0; }
 main { padding: 12px; max-width: 1100px; margin: 0 auto; }
-h1 { font-size: 1.5rem; margin: 0; color: var(--navy); }
-h2 { font-size: 1.1rem; color: var(--blue); margin: 20px 0 8px; }
-a { color: var(--blue); }
+h1 { font-size: 1.6rem; font-weight:700; margin: 0; color: var(--coho-red); }
+h2 { font-size: 1.15rem; font-weight:700; color: var(--coho-black); margin: 20px 0 8px; padding-bottom: 4px; border-bottom: 2px solid var(--coho-red); }
+h3 { font-size: .95rem; font-weight:700; color: var(--coho-red); text-transform: uppercase; letter-spacing: .12em; }
+a { color: var(--coho-black); text-decoration-color: var(--coho-red); text-underline-offset: 2px; }
 nav.top { background: var(--navy); color:#fff; padding: 8px 12px; display:flex; flex-wrap:wrap; gap: 8px 16px; align-items:center; position: sticky; top:0; z-index:5; }
 nav.top a, nav.top .link { color:#fff; text-decoration:none; font-size: .95rem; }
-nav.top .brand { font-weight:700; font-size:1.05rem; }
-nav.top .brand small { font-weight:400; opacity:.8; }
+nav.top .brand { font-weight:700; font-size:1.1rem; display:inline-flex; align-items:center; gap:8px; }
+nav.top .brand img { height: 26px; width:auto; display:block; }
+nav.top .brand small { font-weight:400; opacity:.75; font-size:.75rem; }
 .nav-links { display:flex; flex-wrap:wrap; gap: 4px 14px; align-items:center; }
 .who { margin-left:auto; font-size:.85rem; opacity:.9; }
 .page { background:#fff; border:1px solid var(--line); border-radius: 10px; padding: 16px; }
 .page.narrow { max-width: 460px; margin: 24px auto; }
 .page-head { display:flex; justify-content:space-between; align-items:center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
 button, .button { min-height: 44px; padding: 8px 14px; border-radius: 8px; border:1px solid var(--line); background:#fff; font-size: 1rem; cursor:pointer; color:#1a1a1a; text-decoration:none; display:inline-flex; align-items:center; gap:6px; }
-button.primary, .button.primary { background: var(--blue); color:#fff; border-color: var(--blue); }
-button.danger { background:#fff; color: var(--err); border-color: var(--err); }
+button.primary, .button.primary { background: var(--coho-black); color:#fff; border-color: var(--coho-black); font-weight:700; box-shadow: inset 4px 0 0 var(--coho-red); }
+button.danger { background:#fff; color: var(--coho-black); border:2px solid var(--coho-red); font-weight:700; }
 button.small { min-height: 34px; padding: 4px 10px; font-size: .9rem; }
-button.link { border:none; background:none; color: var(--blue); padding: 0; min-height: auto; text-decoration: underline; }
+button.link { border:none; background:none; color: inherit; padding: 0; min-height: auto; text-decoration: underline; }
 button:disabled { opacity:.5; cursor: not-allowed; }
 button.big { width:100%; justify-content:space-between; font-size:1.1rem; padding:14px; text-align:left; }
-button.big small { color:#666; font-size:.85rem; }
+button.big small { color:var(--slate); font-size:.85rem; }
 .row { display:flex; gap: 8px; flex-wrap: wrap; align-items:center; }
 .stack { display:flex; flex-direction:column; gap: 8px; margin: 8px 0; }
 .grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px 16px; margin: 8px 0; }
 .field { display:flex; flex-direction:column; gap: 4px; }
 .field-bool { flex-direction: row-reverse; justify-content: flex-end; align-items:center; gap: 10px; }
-.field-label { font-size: .85rem; color:#444; font-weight:600; }
-input, select, textarea { min-height: 44px; padding: 8px 10px; border:1px solid #b9bfcc; border-radius: 8px; font-size: 1rem; width: 100%; background:#fff; }
+.field-label { font-size: .85rem; color:var(--coho-black); font-weight:700; }
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visible { outline: 3px solid var(--coho-red); outline-offset: 2px; }
+input, select, textarea { min-height: 44px; padding: 8px 10px; border:1px solid #b5b5b5; border-radius: 8px; font-size: 1rem; width: 100%; background:#fff; }
 input[type=checkbox] { width: 26px; min-height: 26px; height: 26px; }
 textarea { min-height: 70px; }
 .row input { width:auto; flex:1; }
-.help { color:#666; font-size:.8rem; }
+.help { color:var(--slate); font-size:.8rem; }
 fieldset { border:1px solid var(--line); border-radius: 10px; margin: 12px 0; padding: 10px 12px; }
-legend { font-weight:700; color: var(--navy); padding: 0 6px; }
+legend { font-weight:700; color: var(--coho-black); padding: 0 6px; }
 .savebar { position: sticky; bottom: 0; background: #fff; padding: 10px 0; border-top:1px solid var(--line); display:flex; gap:8px; flex-wrap:wrap; margin-top: 12px; }
 .cards { display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin: 10px 0; }
 .card { display:flex; flex-direction:column; align-items:flex-start; gap: 4px; padding: 14px; border:1px solid var(--line); border-radius: 10px; background:#fff; font-weight:700; font-size:1.05rem; color: var(--navy); text-decoration:none; min-height: 80px; text-align:left; }
-.card small { font-weight:400; color:#555; font-size:.85rem; }
-.card.primary { background: var(--blue); color:#fff; }
-.card.primary small { color:#e6ecf7; }
+.card small { font-weight:400; color:var(--slate); font-size:.85rem; }
+.card.primary { background: var(--coho-black); color:#fff; border-left: 6px solid var(--coho-red); }
+.card.primary small { color:#e6e6e6; }
 .table-wrap { overflow-x:auto; border:1px solid var(--line); border-radius: 8px; }
 table { border-collapse: collapse; width:100%; font-size: .9rem; }
 th, td { padding: 8px; border-bottom:1px solid var(--line); text-align:left; vertical-align: top; }
-th { background:#eef1f7; color: var(--navy); white-space: nowrap; }
-.muted { color:#777; }
+th { background:var(--light); color: var(--coho-black); white-space: nowrap; }
+.muted { color:var(--slate); }
 .small { font-size: .8rem; }
-.note { background:#eef4ff; border-left: 4px solid var(--blue); padding: 8px 10px; border-radius: 4px; }
-.err { color: var(--err); }
-.summary { display:grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap: 8px; background:#f4f6fb; padding: 10px; border-radius: 8px; }
-.pill { padding: 2px 8px; border-radius: 99px; font-size: .8rem; background:#eee; }
+.note { background:var(--light); border-left: 4px solid var(--coho-red); padding: 8px 10px; border-radius: 4px; }
+.err { color: var(--coho-black); font-weight:700; border-left: 4px solid var(--coho-red); padding-left: 8px; }
+.summary { display:grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap: 8px; background:var(--light); padding: 10px; border-radius: 8px; }
+.pill { padding: 2px 8px; border-radius: 99px; font-size: .8rem; background:var(--light); color:var(--coho-black); }
 .pill.passed, .pill.approved, .pill.closed { background:#dcf3e2; color: var(--ok); }
-.pill.failed, .pill.queried { background:#fde4e1; color: var(--err); }
-.pill.open, .pill.submitted { background:#e4ecfb; color: var(--blue); }
+.pill.failed, .pill.queried { background:#fde1e3; color: var(--coho-black); box-shadow: inset 0 0 0 1px var(--coho-red); font-weight:700; }
+.pill.open, .pill.submitted { background:var(--light); color: var(--coho-black); box-shadow: inset 0 0 0 1px var(--slate); }
 .pill.not-done, .pill.draft { background:#fff3cd; color:#7a5b00; }
 .tabs { display:flex; flex-wrap:wrap; gap: 6px; margin: 8px 0 12px; }
 .tabs button.on { background: var(--navy); color:#fff; border-color: var(--navy); }
 .howto { margin: 4px 0 10px; }
 .howto-body { background:#fffbea; border:1px solid #f1e3a6; border-radius: 8px; padding: 6px 14px; margin-top: 6px; }
-.subform { border:2px solid var(--blue); border-radius: 10px; padding: 10px; margin: 10px 0; background:#fbfcff; }
+.subform { border:2px solid var(--coho-black); border-radius: 10px; padding: 10px; margin: 10px 0; background:#fff; }
 .toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); padding: 12px 18px; border-radius: 8px; color:#fff; z-index: 20; box-shadow: 0 4px 16px rgba(0,0,0,.2); }
-.toast.ok { background: var(--ok); } .toast.err { background: var(--err); }
+.toast { font-weight:700; }
+.toast.ok { background: var(--ok); } .toast.err { background: var(--coho-black); border-left: 6px solid var(--coho-red); }
 .sig { width:100%; max-width: 600px; height: 180px; border:1px dashed #888; border-radius: 8px; touch-action: none; background:#fff; display:block; margin: 6px 0; }
 .qr-video { width:100%; max-width: 420px; border-radius: 8px; margin-top: 8px; }
 .search { margin: 8px 0; }
@@ -76,3 +86,12 @@ hr { border:none; border-top:1px solid var(--line); margin: 16px 0; }
 .field .row { flex-wrap: nowrap; }
 .page, fieldset, .subform { min-width: 0; max-width: 100%; }
 html, body { overflow-x: hidden; }
+
+/* Brand: split bar (35% Coho Red, 65% Coho Black), horizontal and full width, above every footer. */
+.split-bar { height: 6px; width: 100%; background: linear-gradient(to right, var(--coho-red) 0 35%, var(--coho-black) 35% 100%); }
+footer.site { margin-top: 24px; }
+footer.site .foot { padding: 10px 12px; font-size: .8rem; color: var(--slate); text-align: center; }
+/* Sign-in page logo: shown at 160px wide (brand minimum is 120px on screen) with clear space around it. */
+.brand-logo { display:block; width:160px; height:auto; margin: 8px auto 20px; padding: 12px; box-sizing: content-box; }
+.app-name { text-align:center; margin-bottom: 4px; }
+.app-tagline { text-align:center; color: var(--slate); margin: 0 0 16px; }

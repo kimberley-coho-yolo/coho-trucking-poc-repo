@@ -17,6 +17,7 @@ import AdminIndex, { AdminTable } from './pages/Admin';
 import DataPage from './pages/DataPage';
 import Reports from './pages/Reports';
 import Help from './pages/Help';
+import { APP_NAME } from './brand';
 
 const PERSON_KEY = 'coho-poc-person';
 
@@ -48,7 +49,7 @@ export default function App() {
     <AppCtx.Provider value={{ session, role, person, setPerson, refresh }}>
       {signedIn && (
         <nav className="top">
-          <Link to="/" className="brand">Coho Trucking <small>PoC{backend().mode === 'demo' ? ' (demo)' : ''}</small></Link>
+          <Link to="/" className="brand"><img src="./brand/coho-fish-reverse.png" alt="" />{APP_NAME} <small>PoC{backend().mode === 'demo' ? ' (demo)' : ''}</small></Link>
           <div className="nav-links">
             <Link to="/">Home</Link>
             <Link to="/drafts">My drafts</Link>
@@ -83,6 +84,10 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </main>
+      <footer className="site">
+        <div className="split-bar" />
+        <div className="foot">{APP_NAME} · Coho Group</div>
+      </footer>
     </AppCtx.Provider>
   );
 }

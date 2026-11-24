@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { backend } from '../lib/backend';
 import { useApp } from '../state';
+import { APP_NAME, APP_TAGLINE } from '../brand';
 import { errText, HowTo } from '../components/ui';
 
 export default function Login() {
@@ -31,7 +32,10 @@ export default function Login() {
 
   return (
     <section className="page narrow">
-      <h1>Sign in</h1>
+      <img className="brand-logo" src="./brand/coho-group-primary.png" alt="Coho Group" />
+      <h1 className="app-name">{APP_NAME}</h1>
+      <p className="app-tagline">{APP_TAGLINE}</p>
+      <h2>Sign in</h2>
       <div className="tabs">
         <button className={mode === 'phone' ? 'on' : ''} onClick={() => { setMode('phone'); setSent(false); setTarget(''); }}>Work mobile</button>
         <button className={mode === 'email' ? 'on' : ''} onClick={() => { setMode('email'); setSent(false); setTarget(''); }}>Email</button>

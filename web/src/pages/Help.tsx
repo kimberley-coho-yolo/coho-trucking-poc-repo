@@ -22,7 +22,7 @@ export default function Help() {
       <p>Every screen has a <b>How to use this screen</b> link at the top. Every field is optional in this proof of concept, and you can <b>Save and exit</b> at any point and carry on from <b>My drafts</b>.</p>
       <div className="table-wrap"><table><thead><tr><th>Screen</th><th>What it is for</th></tr></thead>
         <tbody>{SCREENS.map(([a, b]) => <tr key={a}><td><b>{a}</b></td><td>{b}</td></tr>)}</tbody></table></div>
-      <p className="muted">Full manuals: Coho Trucking PoC User Manual and Developer Manual (Word, in the Trucking spreadsheet folder).</p>
+      <p className="muted">Full manuals: Coho Drive (Coho Trucking PoC) User Manual and Developer Manual (Word, in the Trucking spreadsheet folder).</p>
     </Page>
   );
 }

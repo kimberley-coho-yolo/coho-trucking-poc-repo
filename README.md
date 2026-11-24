@@ -1,4 +1,6 @@
-# Coho Trucking PoC
+# Coho Drive (Coho Trucking PoC)
+
+The driver and office app for Coho trucking. Branding follows the Coho Group Brand Guidelines v1.0 (Nov 2026); colours and the app name live in `web/src/brand.ts` and `web/src/styles.css`.
 
 Proof of concept for the Coho Driver App design (Coho_Driver_App_Design_v0.2): one web app for driver sign-in with a work mobile,
 truck QR, prestart, dockets per customer job, loads, client sign-off, km matching, timesheets, approvals and reports.
