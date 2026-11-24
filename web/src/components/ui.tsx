@@ -1,0 +1,206 @@
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { backend, type Row } from '../lib/backend';
+import { TABLES, type Field, type TableName } from '../lib/schema';
+
+// ---------- date helpers (datetime-local inputs work in local time) ----------
+export function toLocalInput(iso?: string | null, dateOnly = false): string {
+  if (!iso) return '';
+  if (dateOnly) return String(iso).slice(0, 10);
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+export function fromLocalInput(v: string): string | null { return v ? new Date(v).toISOString() : null; }
+export function fmt(iso?: string | null): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? String(iso) : d.toLocaleString('en-AU', { dateStyle: 'short', timeStyle: 'short' });
+}
+export const nowIso = () => new Date().toISOString();
+export const todayIso = () => new Date().toISOString().slice(0, 10);
+
+// ---------- reference lookups (cached per table) ----------
+const refCache: Partial<Record<TableName, Promise<Row[]>>> = {};
+export function clearRefCache() { for (const k of Object.keys(refCache)) delete refCache[k as TableName]; }
+export function useRows(table: TableName, deps: unknown[] = []) {
+  const [rows, setRows] = useState<Row[]>([]);
+  useEffect(() => {
+    let live = true;
+    (refCache[table] ??= backend().list(table).catch(() => [])).then(r => { if (live) setRows(r); });
+    return () => { live = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [table, ...deps]);
+  return rows;
+}
+export function refLabel(table: TableName, rows: Row[], id?: string | null) {
+  if (!id) return '';
+  const r = rows.find(x => x.id === id);
+  return r ? TABLES[table].display(r) : '';
+}
+
+// ---------- one input for any field type ----------
+export function FieldInput({ field, value, onChange }: { field: Field; value: any; onChange: (v: any) => void }) {
+  const refRows = useRows(field.ref ?? 'integrations');
+  const id = 'f-' + field.name;
+  let input: ReactNode;
+  switch (field.type) {
+    case 'textarea': input = <textarea id={id} value={value ?? ''} onChange={e => onChange(e.target.value)} rows={3} />; break;
+    case 'number': input = <input id={id} type="number" inputMode="decimal" value={value ?? ''} onChange={e => onChange(e.target.value === '' ? null : Number(e.target.value))} />; break;
+    case 'date': input = <input id={id} type="date" value={toLocalInput(value, true)} onChange={e => onChange(e.target.value || null)} />; break;
+    case 'datetime': input = (
+      <span className="row">
+        <input id={id} type="datetime-local" value={toLocalInput(value)} onChange={e => onChange(fromLocalInput(e.target.value))} />
+        <button type="button" className="small" onClick={() => onChange(nowIso())}>Now</button>
+      </span>); break;
+    case 'bool': input = <input id={id} type="checkbox" checked={!!value} onChange={e => onChange(e.target.checked)} />; break;
+    case 'select': input = (
+      <select id={id} value={value ?? ''} onChange={e => onChange(e.target.value || null)}>
+        <option value="">(none)</option>
+        {field.options!.map(o => <option key={o} value={o}>{o}</option>)}
+      </select>); break;
+    case 'ref': input = (
+      <select id={id} value={value ?? ''} onChange={e => onChange(e.target.value || null)}>
+        <option value="">(none)</option>
+        {refRows.map(r => <option key={r.id} value={r.id}>{TABLES[field.ref!].display(r) || r.id}</option>)}
+      </select>); break;
+    case 'phone': input = <input id={id} type="tel" inputMode="tel" value={value ?? ''} onChange={e => onChange(e.target.value)} placeholder="0400 000 000" />; break;
+    case 'email': input = <input id={id} type="email" value={value ?? ''} onChange={e => onChange(e.target.value)} />; break;
+    default: input = <input id={id} type="text" value={value ?? ''} onChange={e => onChange(e.target.value)} />;
+  }
+  return (
+    <label className={'field ' + (field.type === 'bool' ? 'field-bool' : '')} htmlFor={id}>
+      <span className="field-label">{field.label}</span>
+      {input}
+      {field.help && <small className="help">{field.help}</small>}
+    </label>
+  );
+}
+
+export function FieldGrid({ fields, value, onChange }: { fields: Field[]; value: Row; onChange: (r: Row) => void }) {
+  return (
+    <div className="grid">
+      {fields.map(f => <FieldInput key={f.name} field={f} value={value[f.name]} onChange={v => onChange({ ...value, [f.name]: v })} />)}
+    </div>
+  );
+}
+
+// ---------- table of rows ----------
+export function DataTable({ table, rows, onOpen, columns }: { table: TableName; rows: Row[]; onOpen?: (r: Row) => void; columns?: string[] }) {
+  const def = TABLES[table];
+  const cols = def.fields.filter(f => !f.hideInTable && (!columns || columns.includes(f.name)));
+  return (
+    <div className="table-wrap">
+      <table>
+        <thead><tr>{cols.map(c => <th key={c.name}>{c.label}</th>)}{onOpen && <th />}</tr></thead>
+        <tbody>
+          {rows.map(r => (
+            <tr key={r.id}>
+              {cols.map(c => <td key={c.name}><Cell field={c} value={r[c.name]} /></td>)}
+              {onOpen && <td><button className="small" onClick={() => onOpen(r)}>Open</button></td>}
+            </tr>
+          ))}
+          {!rows.length && <tr><td colSpan={cols.length + 1} className="muted">No records yet</td></tr>}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+function Cell({ field, value }: { field: Field; value: any }) {
+  const refRows = useRows(field.ref ?? 'integrations');
+  if (value === null || value === undefined || value === '') return <span className="muted">-</span>;
+  if (field.type === 'ref') return <>{refLabel(field.ref!, refRows, value) || String(value).slice(0, 8)}</>;
+  if (field.type === 'datetime') return <>{fmt(value)}</>;
+  if (field.type === 'bool') return <>{value ? 'Yes' : 'No'}</>;
+  return <>{String(value)}</>;
+}
+
+// ---------- page furniture ----------
+export function Page({ title, howTo, children, actions }: { title: string; howTo?: ReactNode; children: ReactNode; actions?: ReactNode }) {
+  return (
+    <section className="page">
+      <header className="page-head"><h1>{title}</h1><div className="row">{actions}</div></header>
+      {howTo && <HowTo>{howTo}</HowTo>}
+      {children}
+    </section>
+  );
+}
+export function HowTo({ children }: { children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="howto">
+      <button className="link" onClick={() => setOpen(!open)} aria-expanded={open}>{open ? 'Hide how to' : 'How to use this screen'}</button>
+      {open && <div className="howto-body">{children}</div>}
+    </div>
+  );
+}
+
+export function useToast() {
+  const [msg, setMsg] = useState<{ text: string; kind: 'ok' | 'err' } | null>(null);
+  const timer = useRef<number | undefined>(undefined);
+  const show = (text: string, kind: 'ok' | 'err' = 'ok') => {
+    setMsg({ text, kind }); window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => setMsg(null), 4000);
+  };
+  const node = msg ? <div role="status" className={'toast ' + msg.kind}>{msg.text}</div> : null;
+  return { show, node };
+}
+
+export function errText(e: unknown) { return e instanceof Error ? e.message : (e as any)?.message ?? String(e); }
+
+// ---------- signature pad ----------
+export function SignaturePad({ value, onChange }: { value?: string | null; onChange: (dataUrl: string | null) => void }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  const drawing = useRef(false);
+  useEffect(() => {
+    const c = ref.current!; const ctx = c.getContext('2d');
+    if (!ctx) return;
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+    if (value) { const img = new Image(); img.onload = () => ctx.drawImage(img, 0, 0); img.src = value; }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const pos = (e: React.PointerEvent) => { const r = ref.current!.getBoundingClientRect(); return [(e.clientX - r.left) * (ref.current!.width / r.width), (e.clientY - r.top) * (ref.current!.height / r.height)]; };
+  return (
+    <div>
+      <canvas ref={ref} width={600} height={180} className="sig"
+        onPointerDown={e => { drawing.current = true; const ctx = ref.current!.getContext('2d')!; const [x, y] = pos(e); ctx.beginPath(); ctx.moveTo(x, y); }}
+        onPointerMove={e => { if (!drawing.current) return; const ctx = ref.current!.getContext('2d')!; const [x, y] = pos(e); ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.strokeStyle = '#111'; ctx.lineTo(x, y); ctx.stroke(); }}
+        onPointerUp={() => { drawing.current = false; onChange(ref.current!.toDataURL('image/png')); }}
+        onPointerLeave={() => { if (drawing.current) { drawing.current = false; onChange(ref.current!.toDataURL('image/png')); } }} />
+      <button type="button" className="small" onClick={() => { const c = ref.current!; const ctx = c.getContext('2d')!; ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height); onChange(null); }}>Clear signature</button>
+    </div>
+  );
+}
+
+// ---------- QR scanning: camera where the browser supports it, typing otherwise ----------
+export function QrScanner({ onResult }: { onResult: (text: string) => void }) {
+  const video = useRef<HTMLVideoElement>(null);
+  const [on, setOn] = useState(false);
+  const [err, setErr] = useState('');
+  const supported = useMemo(() => typeof window !== 'undefined' && 'BarcodeDetector' in window && !!navigator.mediaDevices?.getUserMedia, []);
+  useEffect(() => {
+    if (!on) return;
+    let stream: MediaStream | null = null; let stop = false;
+    (async () => {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        video.current!.srcObject = stream; await video.current!.play();
+        const det = new (window as any).BarcodeDetector({ formats: ['qr_code'] });
+        while (!stop) {
+          const codes = await det.detect(video.current!).catch(() => []);
+          if (codes[0]?.rawValue) { onResult(codes[0].rawValue); setOn(false); break; }
+          await new Promise(r => setTimeout(r, 250));
+        }
+      } catch (e) { setErr(errText(e)); setOn(false); }
+    })();
+    return () => { stop = true; stream?.getTracks().forEach(t => t.stop()); };
+  }, [on]); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <div className="qr">
+      {supported
+        ? <button type="button" onClick={() => setOn(!on)}>{on ? 'Stop camera' : 'Scan truck QR code'}</button>
+        : <p className="muted">This browser cannot scan QR codes. Type the code or pick the truck below.</p>}
+      {on && <video ref={video} className="qr-video" muted playsInline />}
+      {err && <p className="err">{err}</p>}
+    </div>
+  );
+}

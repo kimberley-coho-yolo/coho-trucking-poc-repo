@@ -1,0 +1,11 @@
+# Minimal Supabase CLI config so `supabase link` / `supabase db push` and local `supabase start` work.
+project_id = "coho-trucking-poc"
+[db]
+major_version = 17
+[auth]
+site_url = "http://localhost:5173"
+[auth.sms]
+enable_signup = true
+# Test numbers sign in with a fixed code and send no SMS (local stack only). Add the same in the dashboard for the hosted project.
+[auth.sms.test_otp]
+61400000001 = "123456"
