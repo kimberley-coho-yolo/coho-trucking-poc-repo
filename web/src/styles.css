@@ -70,3 +70,9 @@ th { background:#eef1f7; color: var(--navy); white-space: nowrap; }
 .big-text { font-size: 1.2rem; }
 hr { border:none; border-top:1px solid var(--line); margin: 16px 0; }
 @media (max-width: 600px) { main { padding: 6px; } .page { padding: 12px; } .who { margin-left:0; width:100%; } }
+/* keep phones from scrolling sideways */
+.grid { grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr)); }
+.row input { min-width: 0; }
+.field .row { flex-wrap: nowrap; }
+.page, fieldset, .subform { min-width: 0; max-width: 100%; }
+html, body { overflow-x: hidden; }

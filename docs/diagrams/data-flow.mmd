@@ -1,0 +1,19 @@
+flowchart TD
+  A["Office: jobs and allocations<br/>(Admin > Jobs, Allocations)"] --> B
+  P["Admin: people, work phones,<br/>logins and roles"] --> S1
+  S1["Driver signs in<br/>work mobile + code"] --> S2["Picks own name"]
+  S2 --> B["Start shift<br/>QR scan or pick truck<br/>(shifts)"]
+  B --> C["Prestart<br/>Gearbox record or manual<br/>(shifts.prestart_status)"]
+  C -- failed --> F["Fault, truck tagged out<br/>(faults, trucks.status)"]
+  C -- passed --> D["Docket per customer job<br/>(dockets)"]
+  D --> L["Loads and tasks<br/>(loads)"]
+  D --> SO["Client sign-off<br/>(signoffs)"]
+  SO --> D2{"Another job?"}
+  D2 -- yes --> D
+  D2 -- no --> E["End shift: draft timesheet<br/>(timesheet_lines)"]
+  G["GPS trips upload<br/>(gps_trips)"] --> K["Km matching<br/>(km_segments, dockets.km)"]
+  D --> K
+  E --> AP["Supervisor approves or queries"]
+  AP --> X["Export approved hours<br/>for MYOB payroll"]
+  K --> R["Reports: per customer and rig,<br/>per truck, travel"]
+  D --> R

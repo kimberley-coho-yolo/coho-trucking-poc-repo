@@ -1,0 +1,36 @@
+flowchart LR
+  subgraph Devices["Devices (any modern browser)"]
+    iPad["Truck iPad / work phone<br/>installable web app (PWA)"]
+    PC["Office PC<br/>admin, data, reports"]
+  end
+  subgraph Web["web/  React 19 + TypeScript + Vite"]
+    UI["Screens (src/pages)<br/>generic forms from schema.ts"]
+    Lib["Logic (src/lib)<br/>km matching, timesheets,<br/>import / export, phone"]
+    BE{"Backend interface<br/>backend.ts"}
+    Demo["DemoBackend<br/>browser storage, made-up data"]
+    SBc["SupabaseBackend<br/>supabase-js"]
+  end
+  subgraph Supa["Supabase project coho-trucking-poc (Sydney)"]
+    Auth["Auth<br/>email code, SMS code"]
+    API["Data API (PostgREST)"]
+    DB[("Postgres 17<br/>21 tables, 3 views<br/>row level security, audit")]
+  end
+  subgraph Later["To integrate (spreadsheet upload until then)"]
+    Geo["MyGeotab / Fleet Complete"]
+    GB["Gearbox Prestart"]
+    MYOB["MYOB AccountRight"]
+    SMS["SMS provider"]
+  end
+  GH["GitHub repo + Actions CI<br/>tests, build, deploy"]
+  iPad --> UI
+  PC --> UI
+  UI --> Lib --> BE
+  BE --> Demo
+  BE --> SBc --> Auth
+  SBc --> API --> DB
+  Geo -. "CSV / Excel now, API later" .-> DB
+  GB -. "CSV now, webhook later" .-> DB
+  DB -. "CSV now, API later" .-> MYOB
+  Auth -. later .-> SMS
+  GH -. "deploys" .-> Web
+  GH -. "migrations" .-> DB

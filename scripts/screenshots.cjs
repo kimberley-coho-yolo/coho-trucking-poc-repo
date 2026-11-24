@@ -53,14 +53,15 @@ async function login(page, kind, value) {
   await p.click('text=Add a load');
   await p.fill('#f-task', 'Water cartage'); await p.fill('#f-material', 'Produced water'); await p.fill('#f-volume_out_l', '28000');
   await p.fill('#f-docket_no', 'D-4401');
-  await shot(p, '10-docket-load');
+  await p.evaluate(() => { const r = document.querySelector('.subform').getBoundingClientRect(); window.scrollTo(0, window.scrollY + r.top - 60); }); await shot(p, '10-docket-load', false);
   await p.click('text=Save load');
   await p.fill('#f-client_name', 'R. Client (Origin WSR)');
+  await p.evaluate(() => { const r = document.querySelector('canvas.sig').getBoundingClientRect(); window.scrollTo(0, window.scrollY + r.top - 330); }); await p.waitForTimeout(300);
   const c = await p.$('canvas.sig'); const b = await c.boundingBox();
   await p.mouse.move(b.x + 30, b.y + 120); await p.mouse.down();
   for (let i = 0; i < 12; i++) await p.mouse.move(b.x + 30 + i * 22, b.y + 120 - Math.sin(i) * 40);
   await p.mouse.up();
-  await shot(p, '11-docket-full');
+  await shot(p, '11-docket-full', false);
   await p.click('text=Save and exit');
   await p.waitForTimeout(500);
   await p.click('text=My drafts'); await p.waitForSelector('text=Resume');
