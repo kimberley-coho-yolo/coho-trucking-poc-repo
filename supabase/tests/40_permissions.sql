@@ -73,7 +73,7 @@ do $$ begin
 end $$;
 do $$ begin
   begin delete from public.roles where code = 'hse'; raise exception 'FAIL: role in use deleted';
-  exception when foreign_key_violation then raise notice 'ok - a role still used by a login cannot be deleted'; end;
+  exception when foreign_key_violation or restrict_violation then raise notice 'ok - a role still used by a login cannot be deleted'; end;
 end $$;
 update public.roles set active = false where code = 'hse';
 select pg_temp.as_user('aaaaaaaa-0000-0000-0000-000000000005', '{"email":"hse@example.com"}');
