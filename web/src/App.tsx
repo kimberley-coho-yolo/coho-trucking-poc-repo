@@ -13,6 +13,7 @@ import StartShift from './pages/StartShift';
 import ShiftHome from './pages/ShiftHome';
 import Prestart from './pages/Prestart';
 import DocketPage from './pages/DocketPage';
+import Dockets from './pages/Dockets';
 import FaultPage from './pages/FaultPage';
 import EndShift from './pages/EndShift';
 import Drafts from './pages/Drafts';
@@ -59,6 +60,7 @@ export default function App() {
           <div className="nav-links">
             <Link to="/">Home</Link>
             {canRead(perms, 'drafts') && <Link to="/drafts">My drafts</Link>}
+            {canRead(perms, 'all_work') && <Link to="/dockets">Dockets</Link>}
             {canRead(perms, 'approvals') && <Link to="/approvals">Approvals</Link>}
             {canRead(perms, 'reports') && <Link to="/reports">Reports</Link>}
             {DATA_FEATURES.some(f => canRead(perms, f)) && <Link to="/data">Data</Link>}
@@ -79,6 +81,7 @@ export default function App() {
           <Route path="/shift/:id" element={<Guard access={best(perms, 'shifts', 'all_work')}><ShiftHome /></Guard>} />
           <Route path="/shift/:id/prestart" element={<Guard access={best(perms, 'shifts', 'all_work')}><Prestart /></Guard>} />
           <Route path="/shift/:id/end" element={<Guard access={best(perms, 'shifts', 'all_work')}><EndShift /></Guard>} />
+          <Route path="/dockets" element={<Guard access={best(perms, 'all_work')}><Dockets /></Guard>} />
           <Route path="/docket/:id" element={<Guard access={best(perms, 'dockets', 'all_work')}><DocketPage /></Guard>} />
           <Route path="/fault/new" element={<Guard access={best(perms, 'faults')}><FaultPage /></Guard>} />
           <Route path="/drafts" element={<Guard access={best(perms, 'drafts')}><Drafts /></Guard>} />

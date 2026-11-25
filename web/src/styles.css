@@ -129,3 +129,27 @@ details.driver-group td, details.driver-group th { white-space: nowrap; }
 details.driver-group td input { min-width: 180px; min-height: 36px; }
 details.driver-group td.row { display: table-cell; }
 details.driver-group td.row button { margin-right: 6px; }
+
+/* ---------- docket forms ---------- */
+.docket-meta { display:flex; flex-wrap:wrap; gap: 6px 16px; color: var(--slate); margin: 0 0 8px; font-size: .9rem; }
+.docket-meta b { color: var(--coho-black); }
+.live-note { display:flex; flex-wrap:wrap; align-items:center; gap: 8px; }
+.unsaved { color:#7a5b00; background:#fff3cd; display:inline-block; padding: 2px 8px; border-radius: 4px; font-size:.85rem; margin: 0 0 8px; }
+.chips { display:flex; flex-wrap:wrap; gap: 6px; margin-top: 4px; }
+.chip { margin: 0 4px 4px 0; display:inline-block; }
+.chip-toggle { display:inline-flex; align-items:center; gap: 6px; border:1px solid var(--line); border-radius: 99px; padding: 6px 12px; min-height: 44px; cursor:pointer; background:#fff; }
+.chip-toggle.on { border-color: var(--coho-black); background: var(--light); font-weight:700; }
+.chip-toggle input { width:auto; min-height:auto; }
+.chip-toggle small { font-weight:400; color: var(--slate); }
+.people-picker { grid-column: 1 / -1; }
+.form-picker { display:grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; margin: 8px 0 12px; }
+.form-option { display:flex; flex-direction:column; gap: 2px; border:1px solid var(--line); border-radius: 8px; padding: 10px; cursor:pointer; background:#fff; }
+.form-option.on { border: 2px solid var(--coho-black); border-left: 6px solid var(--coho-red); }
+.form-option input { width:auto; min-height:auto; align-self:flex-start; }
+.form-option small { color: var(--slate); }
+.shift-block h3 { margin: 14px 0 6px; font-size: 1rem; }
+.rows-block tfoot th { background: var(--light); }
+.filters { display:grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; margin: 8px 0; }
+.nowrap { white-space: nowrap; }
+textarea { font: inherit; }
+.stack .big small { display:block; }

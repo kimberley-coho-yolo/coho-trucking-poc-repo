@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import type { Backend, Filter, Role, Row, Session } from './backend';
+import type { Backend, Filter, Role, Row, Session, WatchSpec } from './backend';
 import { clean } from './backend';
 import type { TableName } from './schema';
 import { toE164 } from './phone';
@@ -79,6 +79,16 @@ export class SupabaseBackend implements Backend {
   async remove(table: TableName, id: string) {
     const { error } = await this.sb.from(table).delete().eq('id', id);
     if (error) throw error;
+  }
+  // Supabase Realtime: the database pushes changes to every open device. Row level security still applies.
+  watch(specs: WatchSpec[], onChange: (table: TableName, row: Row | null) => void) {
+    const ch = this.sb.channel('watch-' + Math.random().toString(36).slice(2));
+    for (const s of specs) {
+      ch.on('postgres_changes' as any, { event: '*', schema: 'public', table: s.table, ...(s.column ? { filter: `${s.column}=eq.${s.value}` } : {}) },
+        (p: any) => onChange(s.table, (p?.new && Object.keys(p.new).length ? p.new : p?.old) ?? null));
+    }
+    ch.subscribe();
+    return () => { this.sb.removeChannel(ch); };
   }
   async runSelect(sql: string) {
     const { data, error } = await this.sb.rpc('run_select', { q: sql });

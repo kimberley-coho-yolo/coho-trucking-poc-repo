@@ -56,6 +56,7 @@ export function FieldInput({ field, value, onChange }: { field: Field; value: an
         <input id={id} type="datetime-local" value={toLocalInput(value)} onChange={e => onChange(fromLocalInput(e.target.value))} />
         <button type="button" className="small" onClick={() => onChange(nowIso())}>Now</button>
       </span>); break;
+    case 'time': input = <input id={id} type="time" value={value ?? ''} onChange={e => onChange(e.target.value || null)} />; break;
     case 'bool': input = <input id={id} type="checkbox" checked={!!value} onChange={e => onChange(e.target.checked)} />; break;
     case 'select': {
       const from = field.optionsFrom;

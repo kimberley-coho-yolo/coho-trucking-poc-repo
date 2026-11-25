@@ -69,12 +69,16 @@ export function demoSeed(): Record<string, Row[]> {
         sign_in_at: at(y, 18), sign_out_at: at(0, 6), prestart_status: 'passed', prestart_ref: 'GB-PS-1042', created_by: DRIVER_USER, last_step: 'end' },
     ],
     dockets: [
-      { id: 'd1', status: 'closed', shift_id: 's1', job_id: J1, customer_id: C1, location_id: L1, department: 'Completions', project_no: 'P-1001', task_no: 'T-01', po: 'PO-5501',
+      { id: 'd1', docket_no: 100001, form_type: 'daily_report_workover', work_date: dateOnly(y), truck_id: T4, assigned_person_ids: [P1], version: 1, status: 'closed', shift_id: 's1', job_id: J1, customer_id: C1, location_id: L1, department: 'Completions', project_no: 'P-1001', task_no: 'T-01', po: 'PO-5501',
         start_at: at(y, 18, 30), end_at: at(0, 1), fuel_l: 85, km: 65, created_by: DRIVER_USER, extras: {} },
-      { id: 'd2', status: 'closed', shift_id: 's1', job_id: J2, customer_id: C2, location_id: L2, department: 'Completions', project_no: 'P-2002', task_no: 'T-07', po: 'PO-7702',
+      { id: 'd2', docket_no: 100002, form_type: 'daily_report_workover', work_date: dateOnly(y), truck_id: T4, assigned_person_ids: [P1], version: 1, status: 'closed', shift_id: 's1', job_id: J2, customer_id: C2, location_id: L2, department: 'Completions', project_no: 'P-2002', task_no: 'T-07', po: 'PO-7702',
         start_at: at(0, 1, 30), end_at: at(0, 5, 30), standby_minutes: 30, standby_reason: 'Waiting on rig', fuel_l: 60, km: 50, created_by: DRIVER_USER, extras: {} },
+      { id: 'd3', docket_no: 100003, form_type: 'landspray_runsheet', work_date: dateOnly(0), truck_id: T87, assigned_person_ids: [P1], version: 1, status: 'draft',
+        customer_id: C2, location_id: L2, department: 'Landspray', po: 'November - JR', notes: 'Cleaning out MMP4 mud tanks. Note Westrex docket numbers.',
+        created_by: 'demo-office@demo.local', extras: { shift_band: '6am - 6pm DAY Shift', truck_email: 'unit87@coho-resources.com', well: 'ENS 968 Scotia 78 - PL1088 - EPPG03515915', well_section: 'Other' } },
     ],
     loads: [
+      { id: 'ld3', docket_id: 'd3', material: 'Dirty mud', volume_in_l: 8000, source: 'TR6 - MMP4', destination: 'PL 1088 - EPPG03515915', sort: 0, extras: { volume_m3: 8, actual_weight_t: 10, loaded_time: '08:30', pickup_time: '09:30', discharge_time: '10:15', sprayfield: 'Sprayfield 2' }, created_by: 'demo-office@demo.local' },
       { id: 'ld1', docket_id: 'd1', depart_at: at(y, 19), return_at: at(y, 21), task: 'Water cartage', material: 'Produced water', volume_out_l: 28000, source: 'SAV 168 pond', destination: 'Disposal point A', docket_no: 'D-3301', waste_tracking_no: 'WT-77821', created_by: DRIVER_USER },
       { id: 'ld2', docket_id: 'd2', depart_at: at(0, 2), return_at: at(0, 4), task: 'Water cartage', material: 'Fresh water', volume_in_l: 30000, source: 'Bore 3', destination: 'NIT 1 tank', docket_no: 'D-3302', created_by: DRIVER_USER },
     ],

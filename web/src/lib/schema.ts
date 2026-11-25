@@ -3,7 +3,7 @@
 // PoC rule: no field is required.
 
 export type FieldType =
-  | 'text' | 'textarea' | 'number' | 'date' | 'datetime' | 'bool' | 'select' | 'ref' | 'phone' | 'email';
+  | 'text' | 'textarea' | 'number' | 'date' | 'datetime' | 'time' | 'bool' | 'select' | 'ref' | 'phone' | 'email';
 
 export interface Field {
   name: string;
@@ -177,9 +177,13 @@ export const TABLES: Record<TableName, TableDef> = {
   },
   dockets: {
     name: 'dockets', label: 'Dockets', group: 'Driver work', importable: true,
-    display: r => [r.project_no, r.po, r.department].filter(Boolean).join(' '),
+    display: r => [r.docket_no ? 'No. ' + r.docket_no : '', r.project_no, r.po, r.department].filter(Boolean).join(' '),
     fields: [
+      { name: 'docket_no', label: 'Docket no.', type: 'number', help: 'Given by the system when the docket is created' },
+      { name: 'form_type', label: 'Form', type: 'select', options: ['landspray_runsheet', 'daily_report_workover', 'daily_report_drilling', 'frac_support', 'potable_water', 'septic', 'rig_support_ticket', 'general'] },
       { name: 'status', label: 'Status', type: 'select', options: ['draft', 'open', 'closed'] },
+      { name: 'work_date', label: 'Date', type: 'date' },
+      { name: 'truck_id', label: 'Truck', type: 'ref', ref: 'trucks' },
       { name: 'customer_id', label: 'Customer', type: 'ref', ref: 'customers' },
       { name: 'location_id', label: 'Rig / location', type: 'ref', ref: 'locations' },
       { name: 'department', label: 'Department', type: 'select', options: DEPARTMENTS },

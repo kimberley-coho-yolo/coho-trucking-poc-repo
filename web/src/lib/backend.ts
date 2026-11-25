@@ -10,6 +10,9 @@ export type Role = string;
 
 export interface Filter { [column: string]: string | number | boolean | null }
 
+/** A table to listen to for changes, optionally only rows where column = value. */
+export interface WatchSpec { table: TableName; column?: string; value?: string }
+
 export interface Session {
   userId: string;
   email?: string | null;
@@ -34,6 +37,8 @@ export interface Backend {
   saveMany(table: TableName, rows: Row[]): Promise<number>;
   remove(table: TableName, id: string): Promise<void>;
   runSelect(sql: string): Promise<Row[]>;
+  // live updates: calls back when a watched row is added, changed or deleted on any device; returns "stop watching"
+  watch(specs: WatchSpec[], onChange: (table: TableName, row: Row | null) => void): () => void;
 }
 
 let current: Backend | null = null;

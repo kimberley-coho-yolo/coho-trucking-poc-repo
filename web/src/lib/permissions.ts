@@ -18,10 +18,10 @@ export interface Feature {
 
 export const FEATURES: Feature[] = [
   { code: 'shifts', label: 'Shifts, prestart and end of shift', grp: 'Driver', description: 'Start a shift, prestart check and the end-of-shift timesheet (own records).', max_level: 'edit', admin_only_edit: false, sort: 10 },
-  { code: 'dockets', label: 'Dockets, loads and sign-offs', grp: 'Driver', description: 'Customer dockets, loads and client sign-off (own records).', max_level: 'edit', admin_only_edit: false, sort: 20 },
+  { code: 'dockets', label: 'Dockets, loads and sign-offs', grp: 'Driver', description: 'Customer dockets, loads and client sign-off (own records and dockets assigned to them).', max_level: 'edit', admin_only_edit: false, sort: 20 },
   { code: 'faults', label: 'Fault reports', grp: 'Driver', description: 'Report a truck or equipment fault (own records).', max_level: 'edit', admin_only_edit: false, sort: 30 },
   { code: 'drafts', label: 'My drafts', grp: 'Driver', description: 'List of unfinished work to carry on.', max_level: 'read', admin_only_edit: false, sort: 40 },
-  { code: 'all_work', label: "All crews' shifts and dockets", grp: 'Supervision', description: "Read only: see everyone's shifts, dockets and faults. Edit: change them too.", max_level: 'edit', admin_only_edit: false, sort: 50 },
+  { code: 'all_work', label: "All crews' shifts and dockets", grp: 'Supervision', description: "Read only: see everyone's shifts, dockets and faults. Edit: change them, and create, clone and edit dockets for any crew.", max_level: 'edit', admin_only_edit: false, sort: 50 },
   { code: 'approvals', label: 'Timesheet approvals', grp: 'Supervision', description: 'Read only: see timesheets waiting. Edit: approve or query them.', max_level: 'edit', admin_only_edit: false, sort: 60 },
   { code: 'reports', label: 'Reports', grp: 'Supervision', description: 'Hours and km per customer, rig, truck and travel.', max_level: 'read', admin_only_edit: false, sort: 70 },
   { code: 'people', label: 'People, work phones and phone sharing', grp: 'Admin lists', description: 'Who can be picked as a driver, crew phones and who uses which phone.', max_level: 'edit', admin_only_edit: false, sort: 80 },

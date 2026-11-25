@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { backend, type Row } from '../lib/backend';
 import { fmt, Page } from '../components/ui';
 import { useApp } from '../state';
+import { formFor } from '../lib/docketForms';
 
 interface Item { kind: string; when?: string; detail: string; to: string; status: string }
 
@@ -19,7 +20,7 @@ export default function Drafts() {
     const stepTo = (s: Row) => s.last_step === 'prestart' ? `/shift/${s.id}/prestart` : s.last_step === 'end' ? `/shift/${s.id}/end` : `/shift/${s.id}`;
     const out: Item[] = [
       ...shifts.map(s => ({ kind: 'Shift', when: s.updated_at ?? s.created_at, detail: `${s.shift_date ?? ''} ${s.day_night ?? ''} · left at: ${s.last_step ?? 'start'}`, to: stepTo(s), status: s.status })),
-      ...dockets.map(d => ({ kind: 'Docket', when: d.updated_at ?? d.created_at, detail: [d.project_no, d.po, d.department].filter(Boolean).join(' · ') || 'Docket', to: '/docket/' + d.id, status: d.status })),
+      ...dockets.map(d => ({ kind: 'Docket', when: d.updated_at ?? d.created_at, detail: [d.docket_no ? 'No. ' + d.docket_no : '', formFor(d.form_type).label, d.project_no, d.po].filter(Boolean).join(' · '), to: '/docket/' + d.id, status: d.status })),
       ...ts.map(t => ({ kind: 'Timesheet', when: t.updated_at ?? t.created_at, detail: `${t.work_date ?? ''} ${t.supervisor_comment ? '· supervisor: ' + t.supervisor_comment : ''}`, to: t.shift_id ? `/shift/${t.shift_id}/end` : '/approvals', status: t.status })),
     ];
     out.sort((a, b) => String(b.when).localeCompare(String(a.when)));
