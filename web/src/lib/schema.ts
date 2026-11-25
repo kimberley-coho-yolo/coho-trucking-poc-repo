@@ -3,7 +3,7 @@
 // PoC rule: no field is required.
 
 export type FieldType =
-  | 'text' | 'textarea' | 'number' | 'date' | 'datetime' | 'time' | 'bool' | 'select' | 'ref' | 'phone' | 'email';
+  | 'text' | 'textarea' | 'number' | 'date' | 'datetime' | 'time' | 'bool' | 'multi' | 'select' | 'ref' | 'phone' | 'email';
 
 export interface Field {
   name: string;
@@ -20,7 +20,8 @@ export type TableName =
   | 'app_logins' | 'people' | 'work_phones' | 'phone_assignments' | 'trucks' | 'equipment'
   | 'customers' | 'locations' | 'jobs' | 'allocations' | 'shifts' | 'dockets' | 'loads'
   | 'signoffs' | 'faults' | 'timesheet_lines' | 'gps_trips' | 'prestart_records'
-  | 'km_segments' | 'import_batches' | 'integrations' | 'audit_log' | 'roles' | 'features' | 'role_permissions';
+  | 'km_segments' | 'import_batches' | 'integrations' | 'audit_log' | 'roles' | 'features' | 'role_permissions'
+  | 'form_submissions' | 'form_files' | 'app_settings';
 
 export interface TableDef {
   name: TableName;
@@ -166,6 +167,7 @@ export const TABLES: Record<TableName, TableDef> = {
       { name: 'day_night', label: 'Day / Night', type: 'select', options: DAY_NIGHT },
       { name: 'driver_id', label: 'Driver', type: 'ref', ref: 'people' },
       { name: 'is_cover', label: 'Cover driver', type: 'bool' },
+      { name: 'over_24h', label: 'Shift over 24 hours', type: 'bool', help: 'Hours are split across each day on the timesheet', hideInTable: true },
       { name: 'truck_id', label: 'Truck', type: 'ref', ref: 'trucks' },
       { name: 'equipment_id', label: 'Trailer', type: 'ref', ref: 'equipment' },
       { name: 'sign_in_at', label: 'Signed in', type: 'datetime' },
@@ -194,6 +196,7 @@ export const TABLES: Record<TableName, TableDef> = {
       { name: 'start_at', label: 'Start', type: 'datetime' },
       { name: 'end_at', label: 'End', type: 'datetime' },
       { name: 'standby_minutes', label: 'Standby (minutes)', type: 'number' },
+      { name: 'over_24h', label: 'Shift over 24 hours', type: 'bool', help: 'Tick when the shift runs past 24 hours. Hours are split across each day on the timesheet', hideInTable: true },
       { name: 'standby_reason', label: 'Standby reason', type: 'text' },
       { name: 'fuel_l', label: 'Fuel used (L)', type: 'number' },
       { name: 'odo_start', label: 'Odometer start', type: 'number', help: 'Only needed if the truck has no tracker' },
@@ -256,6 +259,11 @@ export const TABLES: Record<TableName, TableDef> = {
       { name: 'wet_hours', label: 'Wet time (hours)', type: 'number' },
       { name: 'wet_type', label: 'Wet type', type: 'select', options: ['8 hr wet (yard)', '6 hr wet (home)'] },
       { name: 'work_diary_page', label: 'Work diary page', type: 'text' },
+      { name: 'shift_band', label: 'Shift times', type: 'select', options: ['00:00 to 12:00', '12:00 to 24:00', '06:00 to 18:00', '18:00 to 06:00'] },
+      { name: 'truck_id', label: 'Unit', type: 'ref', ref: 'trucks' },
+      { name: 'with_dog', label: 'Truck and dog', type: 'bool', help: 'Tick when the hours were worked with a dog trailer' },
+      { name: 'over_24h', label: 'Part of a shift over 24 hours', type: 'bool' },
+      { name: 'split_note', label: 'Long shift', type: 'text', hideInTable: true },
       { name: 'location', label: 'Rig / location', type: 'text' },
       { name: 'driver_comment', label: 'Driver comment', type: 'textarea', hideInTable: true },
       { name: 'supervisor_comment', label: 'Supervisor comment', type: 'textarea' },
@@ -353,6 +361,35 @@ export const TABLES: Record<TableName, TableDef> = {
       { name: 'role', label: 'Role', type: 'text' },
       { name: 'feature', label: 'Function', type: 'text' },
       { name: 'access', label: 'Access', type: 'select', options: ['hidden', 'read', 'edit'] },
+    ],
+  },
+  form_submissions: {
+    name: 'form_submissions', label: 'Forms (timesheets, expenses, checklists)', group: 'Driver work',
+    display: r => [r.form_type, r.period_start].filter(Boolean).join(' '),
+    fields: [
+      { name: 'form_type', label: 'Form', type: 'select', options: ['driver_timesheet', 'expense_reimbursement', 'land_fire_risk'] },
+      { name: 'status', label: 'Status', type: 'select', options: ['draft', 'submitted', 'approved', 'returned'] },
+      { name: 'person_id', label: 'Person', type: 'ref', ref: 'people' },
+      { name: 'period_start', label: 'Date / fortnight beginning', type: 'date' },
+      { name: 'title', label: 'Title', type: 'text' },
+      { name: 'signed_at', label: 'Signed at', type: 'datetime' },
+      { name: 'approver_name', label: 'Approved / authorised by', type: 'text' },
+      { name: 'approver_comment', label: 'Approver comment', type: 'textarea', hideInTable: true },
+      { name: 'approved_at', label: 'Approved at', type: 'datetime' },
+    ],
+  },
+  app_settings: {
+    name: 'app_settings', label: 'App settings', group: 'Settings',
+    display: r => r.id,
+    fields: [{ name: 'id', label: 'Setting', type: 'text' }, { name: 'description', label: 'What it does', type: 'text' }],
+  },
+  form_files: {
+    name: 'form_files', label: 'Form photos and receipts', group: 'Driver work',
+    display: r => r.file_name || r.kind || '',
+    fields: [
+      { name: 'kind', label: 'Kind', type: 'text' },
+      { name: 'file_name', label: 'File name', type: 'text' },
+      { name: 'caption', label: 'Caption', type: 'text' },
     ],
   },
   audit_log: {

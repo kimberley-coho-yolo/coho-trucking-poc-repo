@@ -9,7 +9,10 @@ export class SupabaseBackend implements Backend {
   mode = 'supabase' as const;
   sb: SupabaseClient;
   constructor(url: string, key: string) {
-    this.sb = createClient(url, key, { auth: { persistSession: true, autoRefreshToken: true } });
+    // A save that hangs on a weak signal gives up after 20 seconds and goes to the outbox instead.
+    const timedFetch: typeof fetch = (input, init) =>
+      fetch(input, { ...init, signal: init?.signal ?? (typeof AbortSignal !== 'undefined' && 'timeout' in AbortSignal ? AbortSignal.timeout(20_000) : undefined) });
+    this.sb = createClient(url, key, { auth: { persistSession: true, autoRefreshToken: true }, global: { fetch: timedFetch } });
   }
   async getSession(): Promise<Session | null> {
     const { data } = await this.sb.auth.getSession();

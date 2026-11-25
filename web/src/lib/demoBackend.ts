@@ -5,6 +5,7 @@ import { clean, uuid } from './backend';
 import type { TableName } from './schema';
 import { normPhone, samePhone } from './phone';
 import { demoSeed, demoSettings } from './demoSeed';
+import { daysCovered, docketEntries, docketPeopleDays, planDay } from './timesheetSync';
 import { best, canEdit, canRead, effectiveAccess, FEATURES, TABLE_FEATURE, type Perms } from './permissions';
 
 const KEY = 'coho-poc-demo-db-v1';
@@ -14,6 +15,7 @@ const REFERENCE: TableName[] = ['people', 'work_phones', 'phone_assignments', 't
 
 type Db = Record<string, Row[]>;
 type Listener = { specs: WatchSpec[]; cb: (table: TableName, row: Row | null) => void };
+export const STALE_FORM = 'This form was changed on another device after you opened it. Tap Reload to get the latest copy, then make your change again.';
 export const STALE_DOCKET = 'This docket was changed on another device after you opened it. Tap Reload to get the latest copy, then make your change again.';
 
 function safeGet(key: string): string | null { try { return localStorage.getItem(key); } catch { return null; } }
@@ -28,6 +30,9 @@ export class DemoBackend implements Backend {
     const raw = safeGet(KEY);
     this.db = raw ? JSON.parse(raw) : demoSeed();
     if (!this.db.roles) Object.assign(this.db, demoSettings());   // older demo data: add roles and access settings
+    // older demo data: add access rows for functions added since (e.g. "forms")
+    const fresh = demoSettings().role_permissions as Row[];
+    for (const r of fresh) if (!this.t('role_permissions').some(p => p.role === r.role && p.feature === r.feature)) this.t('role_permissions').push(r);
     const s = safeGet(SESSION_KEY);
     this.session = s ? JSON.parse(s) : null;
     // another tab or window saved: pick up its copy and tell open screens (the demo's stand-in for Supabase Realtime)
@@ -118,7 +123,12 @@ export class DemoBackend implements Backend {
     if (table === 'app_logins') return canRead(p, 'logins') || own;
     if (table === 'prestart_records') return true;
     if (table === 'import_batches') return canRead(p, 'data_transfer') || canRead(p, 'integration_data');
-    if (DRIVER_TABLES.includes(table)) return canRead(p, 'all_work') || ((own || this.assigned(table, r)) && canRead(p, f!)) || (table === 'timesheet_lines' && canRead(p, 'approvals'));
+    if (table === 'timesheet_lines') return canRead(p, 'all_work') || canRead(p, 'approvals')
+      || ((own || this.myPeople().includes(r.person_id)) && (canRead(p, 'shifts') || canRead(p, 'forms')));
+    if (DRIVER_TABLES.includes(table)) return canRead(p, 'all_work') || ((own || this.assigned(table, r)) && canRead(p, f!));
+    if (table === 'form_submissions') return this.formVisible(r);
+    if (table === 'app_settings') return true;
+    if (table === 'form_files') { const s = this.t('form_submissions').find(x => x.id === r.submission_id); return !!s && this.formVisible(s); }
     return f ? canRead(p, f) : role === 'admin';
   }
   private canWrite(table: TableName, existing?: Row, body?: Row): boolean {
@@ -129,12 +139,70 @@ export class DemoBackend implements Backend {
     if (table === 'features' || table === 'audit_log') return false;
     if (table === 'role_permissions') return canEdit(p, 'settings') && (existing?.role ?? body?.role) !== 'admin';
     if (table === 'import_batches') return canEdit(p, 'data_transfer') || canEdit(p, 'integration_data');
+    if (table === 'app_settings') return canEdit(p, 'settings');
+    if (table === 'form_submissions') {
+      if (!existing) return canEdit(p, 'forms') || canEdit(p, 'all_work') || canEdit(p, 'approvals');
+      return canEdit(p, 'approvals') || (canEdit(p, 'all_work') && existing.form_type !== 'expense_reimbursement')
+        || (canEdit(p, 'forms') && ['draft', 'returned'].includes(existing.status) && this.formMine(existing));
+    }
+    if (table === 'form_files') {
+      const s = this.t('form_submissions').find(x => x.id === (existing?.submission_id ?? body?.submission_id));
+      if (!s || !this.formVisible(s) || (s.status === 'approved' && role !== 'admin')) return false;
+      if (existing) return existing.created_by === this.session?.userId || canEdit(p, 'approvals');
+      return canEdit(p, 'forms') || canEdit(p, 'all_work') || canEdit(p, 'approvals');
+    }
     if (DRIVER_TABLES.includes(table)) {
       if (table === 'timesheet_lines' && existing?.status === 'approved' && role !== 'admin') return false;
-      const own = !existing || existing.created_by === this.session?.userId || this.assigned(table, existing);
+      const own = !existing || existing.created_by === this.session?.userId || this.assigned(table, existing)
+        || (table === 'timesheet_lines' && this.myPeople().includes(existing.person_id) && (canEdit(p, 'shifts') || canEdit(p, 'forms')));
       return best(p, 'all_work') === 'edit' || (own && canEdit(p, f!)) || (table === 'timesheet_lines' && !!existing && canEdit(p, 'approvals'));
     }
     return f ? canEdit(p, f) : role === 'admin';
+  }
+
+  // the database's refresh_timesheet_day(): the driver's line for a day, worked out from their dockets
+  private refreshDay(person?: string | null, day?: string | null) {
+    if (!person || !day) return;
+    const shiftOf = (id?: string | null) => (id ? this.t('shifts').find(x => x.id === id) : undefined);
+    const entries = this.t('dockets').flatMap(d => docketEntries(d, shiftOf(d.shift_id))).filter(e => e.person_id === person && e.day === day);
+    const lines = this.t('timesheet_lines');
+    const existing = lines.filter(l => l.person_id === person && l.work_date === day).sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)))[0];
+    const plan = planDay(entries, existing, id => shiftOf(id), id => this.t('locations').find(l => l.id === id)?.name, person, day);
+    if (plan === 'delete') { lines.splice(lines.indexOf(existing!), 1); this.emit('timesheet_lines', existing!); return; }
+    if (!plan) return;
+    const now = new Date().toISOString();
+    const row = existing ? { ...plan, updated_at: now } : { id: uuid(), created_at: now, updated_at: now, created_by: this.session?.userId, ...plan };
+    if (existing) lines[lines.indexOf(existing)] = row; else lines.push(row);
+    this.emit('timesheet_lines', row);
+  }
+  private syncFromDocket(before: Row | undefined | null, after: Row | null) {
+    const shiftOf = (d: Row | null | undefined) => (d?.shift_id ? this.t('shifts').find(x => x.id === d.shift_id) : undefined);
+    const pairs = [...docketPeopleDays(before, shiftOf(before)), ...docketPeopleDays(after, shiftOf(after))];
+    const seen = new Set<string>();
+    for (const p of pairs) { const k = p.person_id + p.day; if (!seen.has(k)) { seen.add(k); this.refreshDay(p.person_id, p.day); } }
+  }
+
+  private formMine(s: Row): boolean {
+    const mine = this.myPeople();
+    return s.created_by === this.session?.userId || (!!s.person_id && mine.includes(s.person_id)) || (s.assigned_person_ids ?? []).some((x: string) => mine.includes(x));
+  }
+  // same rule as form_submissions_read: expense claims (bank details) only for the claimant and approvers
+  private formVisible(s: Row): boolean {
+    const p = this.perms();
+    return canRead(p, 'approvals') || (canRead(p, 'all_work') && s.form_type !== 'expense_reimbursement') || (canRead(p, 'forms') && this.formMine(s));
+  }
+  // same rules as the form_guard trigger
+  private formGuard(existing: Row | undefined, body: Row, saved: Row) {
+    const p = this.perms();
+    if (!existing) {
+      if (!['draft', 'submitted'].includes(saved.status ?? 'draft') && !canEdit(p, 'approvals')) throw new Error('A new form starts as a draft.');
+      saved.version = 1; saved.status ??= 'draft'; saved.data ??= {}; return;
+    }
+    if (body.version !== undefined && body.version !== (existing.version ?? 1)) throw Object.assign(new Error(STALE_FORM), { code: '40001' });
+    if (existing.status === 'approved' && this.role() !== 'admin') throw new Error('This form is approved and locked. Only an admin can change it.');
+    if (['approved', 'returned'].includes(saved.status) && saved.status !== existing.status && !canEdit(p, 'approvals')) throw new Error('Only someone with Timesheet approvals can approve or return a form.');
+    if (saved.status === 'approved' && existing.status !== 'approved') { saved.approved_by = this.session?.userId; saved.approved_at = new Date().toISOString(); }
+    saved.version = (existing.version ?? 1) + 1; saved.updated_by = this.session?.userId;
   }
 
   async list(table: TableName, filter?: Filter, order?: { column: string; ascending?: boolean }) {
@@ -163,6 +231,7 @@ export class DemoBackend implements Backend {
     const saved: Row = existing
       ? { ...existing, ...body, updated_at: now }
       : { id: uuid(), created_at: now, created_by: this.session?.userId, ...body };
+    if (table === 'form_submissions') this.formGuard(existing, body, saved);
     if (table === 'dockets') {
       if (existing) { saved.version = (existing.version ?? 1) + 1; saved.updated_by = this.session?.userId; }
       else {
@@ -172,6 +241,11 @@ export class DemoBackend implements Backend {
     }
     if (idx >= 0) list[idx] = saved; else list.push(saved);
     this.audit(table, saved.id, existing ? 'UPDATE' : 'INSERT', existing, saved);
+    if (table === 'dockets') this.syncFromDocket(existing, saved);
+    if (table === 'shifts') for (const x of [saved, existing]) if (x) {
+      const days = new Set([x.shift_date, ...(x.sign_in_at && x.sign_out_at && new Date(x.sign_out_at) > new Date(x.sign_in_at) ? daysCovered(x.sign_in_at, x.sign_out_at) : [])]);
+      for (const dd of days) this.refreshDay(x.driver_id, dd);
+    }
     this.persist();
     this.emit(table, saved);
     return { ...saved };
@@ -193,6 +267,7 @@ export class DemoBackend implements Backend {
     this.audit(table, id, 'DELETE', list[idx], null);
     const gone = list[idx];
     list.splice(idx, 1);
+    if (table === 'dockets') this.syncFromDocket(gone, null);
     this.persist();
     for (const l of this.listeners) for (const sp of l.specs) if (sp.table === table && (!sp.column || String(gone[sp.column]) === sp.value)) l.cb(table, null);
   }

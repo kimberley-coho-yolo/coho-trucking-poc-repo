@@ -6,6 +6,9 @@ import { allowedLevels, effectiveAccess, FEATURES, type Access, type Feature } f
 import { TABLES } from '../lib/schema';
 import { EditOnly, errText, FieldGrid, Page, useReadOnly, useToast } from '../components/ui';
 import { useApp } from '../state';
+import { DAY_NAMES, periodEnd, periodStart, type PeriodView } from '../lib/forms';
+import { periodSettingsFrom, reloadAppSettings } from '../lib/appSettings';
+import { todayIso } from '../components/ui';
 
 const LEVEL_LABEL: Record<Access, string> = { hidden: 'Hidden', read: 'Read only', edit: 'Edit' };
 const SHORT: Record<Access, string> = { hidden: '-', read: 'Read', edit: 'Edit' };
@@ -106,6 +109,7 @@ export default function Settings() {
       <li>Admin always has full access so someone can always fix these settings. Integrations, Logins and these Settings can only ever be edited by admin.</li>
       <li>The database enforces these settings too, so hidden or read-only data cannot be reached another way.</li>
     </ol>}>
+      <TimesheetSettings />
       <h2>Roles</h2>
       <div className="role-tabs" role="tablist">
         {roles.map(r => <button key={r.code} role="tab" aria-selected={sel === r.code} className={(sel === r.code ? 'on ' : '') + (r.active === false ? 'retired' : '')}
@@ -189,5 +193,46 @@ export default function Settings() {
       </table></div>
       {toast.node}
     </Page>
+  );
+}
+
+/** Admin: which day timesheet weeks start on, and whether timesheets open as a fortnight or a week. */
+function TimesheetSettings() {
+  const toast = useToast();
+  const readOnly = useReadOnly();
+  const [rows, setRows] = useState<Row[]>([]);
+  const [ws, setWs] = useState(3);
+  const [view, setView] = useState<PeriodView>('fortnight');
+  useEffect(() => { backend().list('app_settings').then(r => { setRows(r); const p = periodSettingsFrom(r); setWs(p.weekStart); setView(p.view); }).catch(() => null); }, []);
+  const p = periodSettingsFrom(rows);
+  const preview = { ...p, weekStart: ws, view };
+  const start = periodStart(todayIso(), preview);
+  const save = async () => {
+    try {
+      const put = (id: string, value: unknown) => backend().save('app_settings', { ...(rows.find(r => r.id === id) ?? { id }), value });
+      await put('timesheet_week_start', ws);
+      await put('timesheet_default_view', view);
+      reloadAppSettings();
+      setRows(await backend().list('app_settings'));
+      toast.show('Timesheet settings saved');
+    } catch (e) { toast.show(errText(e), 'err'); }
+  };
+  return (
+    <section className="timesheet-settings">
+      <h2>Timesheets</h2>
+      <div className="grid">
+        <label className="field"><span className="field-label">Weeks start on</span>
+          <select value={ws} disabled={readOnly} onChange={e => setWs(Number(e.target.value))}>
+            {DAY_NAMES.map((d, i) => <option key={d} value={i}>{d}</option>)}</select>
+          <small className="help">Timesheets and approvals run from this day, e.g. Wednesday to Tuesday.</small></label>
+        <label className="field"><span className="field-label">Timesheets open as</span>
+          <select value={view} disabled={readOnly} onChange={e => setView(e.target.value as PeriodView)}>
+            <option value="fortnight">Fortnight (14 days)</option><option value="week">Week (7 days)</option></select>
+          <small className="help">Anyone can still switch between week and fortnight on the screen.</small></label>
+      </div>
+      <p className="muted">Today falls in the {view} {start} ({DAY_NAMES[ws]}) to {periodEnd(start, view)}. Due by 09:00 the next {DAY_NAMES[ws]}.</p>
+      <EditOnly><button className="primary" onClick={save}>Save timesheet settings</button></EditOnly>
+      {toast.node}
+    </section>
   );
 }

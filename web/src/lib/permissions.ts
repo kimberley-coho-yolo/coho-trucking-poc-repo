@@ -20,9 +20,10 @@ export const FEATURES: Feature[] = [
   { code: 'shifts', label: 'Shifts, prestart and end of shift', grp: 'Driver', description: 'Start a shift, prestart check and the end-of-shift timesheet (own records).', max_level: 'edit', admin_only_edit: false, sort: 10 },
   { code: 'dockets', label: 'Dockets, loads and sign-offs', grp: 'Driver', description: 'Customer dockets, loads and client sign-off (own records and dockets assigned to them).', max_level: 'edit', admin_only_edit: false, sort: 20 },
   { code: 'faults', label: 'Fault reports', grp: 'Driver', description: 'Report a truck or equipment fault (own records).', max_level: 'edit', admin_only_edit: false, sort: 30 },
+  { code: 'forms', label: 'Timesheets, expense claims and checklists', grp: 'Driver', description: 'Fortnightly timesheet, expense reimbursement and land pre-inspection checklist (own forms). Approving them needs Timesheet approvals.', max_level: 'edit', admin_only_edit: false, sort: 35 },
   { code: 'drafts', label: 'My drafts', grp: 'Driver', description: 'List of unfinished work to carry on.', max_level: 'read', admin_only_edit: false, sort: 40 },
   { code: 'all_work', label: "All crews' shifts and dockets", grp: 'Supervision', description: "Read only: see everyone's shifts, dockets and faults. Edit: change them, and create, clone and edit dockets for any crew.", max_level: 'edit', admin_only_edit: false, sort: 50 },
-  { code: 'approvals', label: 'Timesheet approvals', grp: 'Supervision', description: 'Read only: see timesheets waiting. Edit: approve or query them.', max_level: 'edit', admin_only_edit: false, sort: 60 },
+  { code: 'approvals', label: 'Timesheet approvals', grp: 'Supervision', description: 'Read only: see timesheets, expense claims and checklists waiting. Edit: approve, authorise or return them.', max_level: 'edit', admin_only_edit: false, sort: 60 },
   { code: 'reports', label: 'Reports', grp: 'Supervision', description: 'Hours and km per customer, rig, truck and travel.', max_level: 'read', admin_only_edit: false, sort: 70 },
   { code: 'people', label: 'People, work phones and phone sharing', grp: 'Admin lists', description: 'Who can be picked as a driver, crew phones and who uses which phone.', max_level: 'edit', admin_only_edit: false, sort: 80 },
   { code: 'fleet', label: 'Trucks, trailers and equipment', grp: 'Admin lists', description: 'Truck and trailer lists, QR codes, tracker and Gearbox IDs.', max_level: 'edit', admin_only_edit: false, sort: 90 },
@@ -49,6 +50,7 @@ export const SYSTEM_ROLES = [
 export function defaultAccess(role: string, f: Feature): Access {
   if (role === 'admin') return 'edit';
   if (['shifts', 'dockets', 'faults'].includes(f.code)) return 'edit';
+  if (f.code === 'forms') return ['driver', 'supervisor', 'office'].includes(role) ? 'edit' : 'hidden';
   if (['drafts', 'help'].includes(f.code)) return 'read';
   if (role === 'driver') return 'hidden';
   if (role !== 'office' && role !== 'supervisor') return 'hidden';
@@ -91,6 +93,7 @@ export const TABLE_FEATURE: Partial<Record<TableName, string>> = {
   gps_trips: 'integration_data', prestart_records: 'integration_data', km_segments: 'integration_data',
   shifts: 'shifts', timesheet_lines: 'shifts', dockets: 'dockets', loads: 'dockets', signoffs: 'dockets', faults: 'faults',
   roles: 'settings', role_permissions: 'settings', features: 'settings',
+  form_submissions: 'forms', form_files: 'forms', app_settings: 'settings',
 };
 
 export const DATA_FEATURES = ['data_transfer', 'integration_data', 'query', 'integrations'];

@@ -41,6 +41,7 @@ const OPERATOR: Field = { name: 'operator_id', label: 'Truck operator', type: 'r
 const OPERATOR_SIGNED: Field = { name: 'operator_signed_at', label: 'Operator signed at', type: 'datetime', help: 'Tap Now when the operator confirms the shift' };
 const FUEL = n('fuel_used_l', 'Fuel used (L)');
 const SHIFT_NOTES = area('notes', 'Operational notes');
+const STANDBY = n('standby_hours', 'Standby (hrs)', 'e.g. 12 for a dedicated truck on standby all shift');
 const DAY_SHIFTS: ShiftDef[] = [
   { n: 1, label: 'Shift 1', bands: ['00:00 to 12:00', '06:00 to 18:00'] },
   { n: 2, label: 'Shift 2', bands: ['12:00 to 00:00', '18:00 to 06:00'] },
@@ -84,7 +85,7 @@ export const FORMS: FormDef[] = [
     code: 'daily_report_workover', label: 'Workover / Completions daily report', ref: 'COHO-ADM-FOR-015 Rev 3.0', departments: ['Workover', 'Completions'],
     summary: 'Two shifts per truck per day, loads in and out, equipment on site and client sign-off.',
     header: [t('trailer_rego', 'Trailer rego'), col('dockets', 'customer_id'), LOCATION(), WELL, ...LAT_LONG],
-    shifts: { defs: DAY_SHIFTS, fields: [OPERATOR, OPERATOR_SIGNED, SHIFT_NOTES, FUEL, RIG_TYPE] },
+    shifts: { defs: DAY_SHIFTS, fields: [OPERATOR, OPERATOR_SIGNED, SHIFT_NOTES, FUEL, STANDBY, RIG_TYPE] },
     rows: {
       label: 'Loads', addLabel: 'Add a load',
       fields: [
@@ -100,10 +101,10 @@ export const FORMS: FormDef[] = [
     noClone: [],
   },
   {
-    code: 'daily_report_drilling', label: 'Drilling daily report', ref: 'COHO-ADM-FOR-015 Rev 3.0', departments: ['Drilling'],
+    code: 'daily_report_drilling', label: 'Drilling / CCC daily report', ref: 'COHO-ADM-FOR-015 Rev 3.0', departments: ['Drilling'],
     summary: 'Two shifts per truck per day, material to LWD or disposal, washout, equipment and WSR sign-off.',
     header: [t('trailer_rego', 'Trailer rego'), col('dockets', 'customer_id'), LOCATION(), WELL, t('supervisor_name', 'Supervisor name'), ...LAT_LONG],
-    shifts: { defs: DAY_SHIFTS, fields: [OPERATOR, OPERATOR_SIGNED, sel('truck_config', 'Truck set-up', ['Truck', 'Dog', 'Semi', 'WC', 'RT']), SHIFT_NOTES, FUEL, RIG_TYPE] },
+    shifts: { defs: DAY_SHIFTS, fields: [OPERATOR, OPERATOR_SIGNED, sel('truck_config', 'Truck set-up', ['Truck', 'Dog', 'Semi', 'WC', 'RT']), SHIFT_NOTES, FUEL, STANDBY, RIG_TYPE] },
     rows: {
       label: 'Loads', addLabel: 'Add a load',
       fields: [
@@ -227,7 +228,7 @@ export const COMMON_FIELDS: Field[] = [
   { name: 'task_no', label: 'Task number', type: 'text' },
   { name: 'po', label: 'PO number', type: 'text' },
 ];
-export const TIME_FIELDS: Field[] = ['start_at', 'end_at', 'standby_minutes', 'standby_reason'].map(x => col('dockets', x));
+export const TIME_FIELDS: Field[] = ['start_at', 'end_at', 'standby_minutes', 'standby_reason', 'over_24h'].map(x => col('dockets', x));
 
 // ---------- columns vs extras ----------
 const DOCKET_COLS = new Set([...TABLES.dockets.fields.map(f => f.name), 'id', 'shift_id', 'job_id', 'status', 'extras', 'last_step', 'assigned_person_ids',
@@ -238,13 +239,15 @@ const LOAD_COLS = new Set([...TABLES.loads.fields.map(f => f.name), 'id', 'docke
 export function toView(row: Row | null | undefined): Row {
   if (!row) return {};
   const { extras, ...rest } = row;
-  return { ...(extras ?? {}), ...rest };
+  const out: Row = { ...(extras ?? {}), ...rest };
+  for (const k of Object.keys(out)) if (k.startsWith('__') && k !== '__queued') delete out[k];
+  return out;
 }
 /** Back to a database row: known columns stay as columns, the rest goes into extras. */
 export function fromView(view: Row, table: 'dockets' | 'loads'): Row {
   const cols = table === 'dockets' ? DOCKET_COLS : LOAD_COLS;
   const out: Row = {}; const extras: Row = {};
-  for (const [k, v] of Object.entries(view)) (cols.has(k) ? out : extras)[k] = v;
+  for (const [k, v] of Object.entries(view)) { if (k.startsWith('__')) continue; (cols.has(k) ? out : extras)[k] = v; }
   out.extras = extras;
   return out;
 }
@@ -280,7 +283,7 @@ export function cloneDocket(src: Row, srcRows: Row[], opts: CloneOptions): { doc
   const view = toView(src);
   const skip = new Set([...NEVER_CLONE, ...form.noClone]);
   for (const k of Object.keys(view)) {
-    if (/^s[12]_(operator_signed_at|fuel_used_l|notes|disposal_vol_l|waste_tracking_no|docket_number)$/.test(k)) skip.add(k);
+    if (/^s[12]_(operator_signed_at|fuel_used_l|standby_hours|notes|disposal_vol_l|waste_tracking_no|docket_number)$/.test(k)) skip.add(k);
   }
   const copy: Row = {};
   for (const [k, v] of Object.entries(view)) if (!skip.has(k)) copy[k] = v;

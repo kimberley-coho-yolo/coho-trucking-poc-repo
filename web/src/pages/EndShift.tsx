@@ -5,6 +5,7 @@ import { TABLES } from '../lib/schema';
 import { draftTimesheet } from '../lib/timesheet';
 import { EditOnly, errText, FieldGrid, nowIso, Page, useToast } from '../components/ui';
 import { useApp } from '../state';
+import { isLong } from '../lib/timesheetSync';
 
 export default function EndShift() {
   const { id } = useParams();
@@ -18,7 +19,11 @@ export default function EndShift() {
     const dockets = await backend().list('dockets', { shift_id: s.id });
     const existing = (await backend().list('timesheet_lines', { shift_id: s.id }))[0];
     const calc = draftTimesheet({ sign_in_at: s.sign_in_at, sign_out_at: s.sign_out_at ?? nowIso() }, dockets);
-    setLine(existing ?? { shift_id: s.id, person_id: s.driver_id, work_date: s.shift_date, on_shift: true, status: 'draft', ...calc });
+    // the line usually exists already (filled in from the dockets); refresh the hours unless the driver typed their own
+    // a shift over 24 hours: the database splits it across days, so do not put the whole span on one line
+    const long = isLong(s.sign_in_at, s.sign_out_at ?? nowIso(), s.over_24h);
+    const fresh = long ? {} : calc;
+    setLine(existing ? { ...existing, ...(existing.hours_edited ? {} : fresh) } : { shift_id: s.id, person_id: s.driver_id, work_date: s.shift_date, on_shift: true, status: 'draft', source: 'end_shift', ...fresh });
     await backend().save('shifts', { id: s.id, last_step: 'end' }).catch(() => null);
   })(); }, [id]);
   if (!shift) return <Page title="End shift"><p>Loading...</p></Page>;
@@ -27,7 +32,7 @@ export default function EndShift() {
     try {
       await backend().save('timesheet_lines', { ...line, status: submit ? 'submitted' : line.status ?? 'draft' });
       if (submit) {
-        await backend().save('shifts', { id: shift.id, status: 'submitted', sign_out_at: shift.sign_out_at ?? nowIso() });
+        await backend().save('shifts', { id: shift.id, status: 'submitted', sign_out_at: shift.sign_out_at ?? nowIso(), over_24h: !!shift.over_24h });
         toast.show('Timesheet submitted for approval');
         if (role === 'driver') setPerson(null);   // hand over the phone
         setTimeout(() => nav('/'), 800);
@@ -41,7 +46,11 @@ export default function EndShift() {
       <li>Add R&R, wet hours and your work diary page. Change anything that is wrong and add a comment.</li>
       <li>Tap <b>Submit and sign out</b>. Your supervisor gets it for approval, and the phone is ready for the next crew.</li>
     </ol>}>
-      <FieldGrid fields={fields} value={line} onChange={setLine} />
+      <label className="field field-bool"><span className="field-label">This shift was over 24 hours</span>
+        <input type="checkbox" checked={!!shift.over_24h || isLong(shift.sign_in_at, shift.sign_out_at ?? nowIso(), false)} disabled={isLong(shift.sign_in_at, shift.sign_out_at ?? nowIso(), false)}
+          onChange={e => setShift({ ...shift, over_24h: e.target.checked })} />
+        <small className="help">Ticked automatically when you have been signed in for more than 24 hours. The hours are split across each day on your timesheet.</small></label>
+      <FieldGrid fields={fields} value={line} onChange={v => setLine(['total_hours', 'docket_hours', 'travel_hours', 'standby_hours'].some(k => v[k] !== line[k]) ? { ...v, hours_edited: true } : v)} />
       <div className="savebar">
         <EditOnly><button className="primary" onClick={() => save(true)}>Submit and sign out</button>
         <button onClick={() => save(false)}>Save and exit</button></EditOnly>

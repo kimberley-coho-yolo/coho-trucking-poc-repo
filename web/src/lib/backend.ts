@@ -41,6 +41,21 @@ export interface Backend {
   watch(specs: WatchSpec[], onChange: (table: TableName, row: Row | null) => void): () => void;
 }
 
+/** The outbox (lib/outbox.ts) adds these on top of a Backend. */
+export interface OutboxApi {
+  outbox(): import('./outbox').OutboxItem[];
+  onOutbox(cb: () => void): () => void;
+  describe(q: import('./outbox').OutboxItem): string;
+  flush(): Promise<void>;
+  pushThrough(itemId: string): Promise<void>;
+  discard(itemId: string): Promise<void>;
+  isOnline(): boolean;
+}
+export function outboxApi(): OutboxApi | null {
+  const b = backend() as unknown as Partial<OutboxApi>;
+  return typeof b.outbox === 'function' ? (b as OutboxApi) : null;
+}
+
 let current: Backend | null = null;
 export function setBackend(b: Backend) { current = b; }
 export function backend(): Backend {
@@ -60,6 +75,7 @@ export function uuid(): string {
 export function clean(row: Row): Row {
   const out: Row = {};
   for (const [k, v] of Object.entries(row)) {
+    if (k.startsWith('__')) continue;                 // screen-only markers, e.g. __queued
     if (v === '' || v === undefined) out[k] = null;
     else out[k] = v;
   }

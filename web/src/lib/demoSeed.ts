@@ -121,6 +121,11 @@ export function demoSeed(): Record<string, Row[]> {
       { id: 'i9', system: 'Jotform', purpose: 'Existing forms during transition', direction: 'In', api_status: 'Published API', stand_in: 'Replaced by dockets in the app', sort_order: 9 },
     ],
     audit_log: [],
+    app_settings: [
+      { id: 'timesheet_week_start', value: 3, description: 'Day timesheet weeks start on: 0 Sunday ... 3 Wednesday ... 6 Saturday' },
+      { id: 'timesheet_default_view', value: 'fortnight', description: 'Timesheet and approvals open showing a fortnight or a week' },
+      { id: 'timesheet_cycle_anchor', value: '2026-11-11', description: 'Any first day of a pay fortnight' },
+    ],
     ...demoSettings(),
   };
 }

@@ -52,6 +52,7 @@ export default function Home() {
         {can.edit('shifts') && <button className="card primary" onClick={() => nav('/shift/start')}>Start a shift<small>Scan the truck, prestart, dockets</small></button>}
         {can.read('drafts') && <Link className="card" to="/drafts">My drafts<small>Carry on where you left off</small></Link>}
         {can.read('all_work') && <Link className="card" to="/dockets">Dockets<small>New, clone and edit dockets for any crew</small></Link>}
+        {(can.read('forms') || can.read('approvals')) && <Link className="card" to="/forms">Forms<small>Timesheet, expenses, land and fire risk checklist</small></Link>}
         {can.edit('faults') && <Link className="card" to="/fault/new">Report a fault<small>Goes to supervisor and HSE</small></Link>}
         {can.read('approvals') && <Link className="card" to="/approvals">Approvals<small>Timesheets waiting</small></Link>}
         {can.read('reports') && <Link className="card" to="/reports">Reports<small>Per customer, rig, truck, travel</small></Link>}

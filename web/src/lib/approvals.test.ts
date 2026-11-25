@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bulkApprovable, groupByDriver } from './approvals';
+import { bulkApprovable, groupByDriver, inRange, rangeFor } from './approvals';
 
 const names: Record<string, string> = { p1: 'Alex Driver', p2: 'Sam Driver' };
 const lines = [
@@ -24,5 +24,19 @@ describe('timesheet approvals by driver', () => {
     expect(bulkApprovable(groups[0]).map(l => l.id)).toEqual(['c', 'b']);
     expect(bulkApprovable(groups[1]).map(l => l.id)).toEqual(['a']);
     for (const g of groups) expect(bulkApprovable(g).every(l => (l.person_id ?? null) === g.personId)).toBe(true);
+  });
+});
+
+describe('approval date ranges', () => {
+  const s = { weekStart: 3, view: 'fortnight' as const, anchor: '2026-11-11' };
+  it('gives this/previous week or fortnight, last 7 and 14 days, and this month to today', () => {
+    expect(rangeFor('period', '2026-11-27', s, 'week')).toMatchObject({ from: '2026-11-25', to: '2026-12-01' });
+    expect(rangeFor('previous', '2026-11-27', s, 'week')).toMatchObject({ from: '2026-11-18', to: '2026-11-24' });
+    expect(rangeFor('period', '2026-11-27', s, 'fortnight')).toMatchObject({ from: '2026-11-25', to: '2026-12-08' });
+    expect(rangeFor('last7', '2026-11-27', s, 'week')).toMatchObject({ from: '2026-11-21', to: '2026-11-27' });
+    expect(rangeFor('last14', '2026-11-27', s, 'week')).toMatchObject({ from: '2026-11-14', to: '2026-11-27' });
+    expect(rangeFor('month', '2026-11-27', s, 'week')).toMatchObject({ from: '2026-11-01', to: '2026-11-27' });
+    expect(inRange('2026-11-02', rangeFor('month', '2026-11-27', s, 'week'))).toBe(true);
+    expect(inRange('2026-10-31', rangeFor('month', '2026-11-27', s, 'week'))).toBe(false);
   });
 });

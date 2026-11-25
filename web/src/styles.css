@@ -153,3 +153,35 @@ details.driver-group td.row button { margin-right: 6px; }
 .nowrap { white-space: nowrap; }
 textarea { font: inherit; }
 .stack .big small { display:block; }
+/* ---------- forms: timesheet, expenses, checklists ---------- */
+.lines { display:flex; flex-direction:column; gap: 8px; }
+.line-row { display:grid; grid-template-columns: 28px 1fr auto; gap: 8px; align-items:start; border:1px solid var(--line); border-radius: 8px; padding: 8px; }
+.line-no { font-weight:700; color: var(--slate); padding-top: 26px; }
+.lines-total { font-size: 1.05rem; }
+.thumbs { display:flex; flex-wrap:wrap; gap: 10px; margin: 8px 0; }
+.thumb { width: 150px; margin:0; display:flex; flex-direction:column; gap: 4px; }
+.thumb img { width:150px; height:150px; object-fit: cover; border-radius: 6px; border:1px solid var(--line); }
+.thumb figcaption { font-size:.8rem; color: var(--slate); overflow:hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-button { position: relative; overflow:hidden; display:inline-flex; align-items:center; cursor:pointer; }
+.file-button input { position:absolute; inset:0; opacity:0; cursor:pointer; }
+.image-files h3 { margin: 12px 0 2px; font-size: 1rem; }
+table.fortnight input, table.fortnight select { min-width: 90px; }
+table.fortnight td { vertical-align: top; }
+table.fortnight tr.week2 td { border-top: 3px solid var(--coho-black); }
+.summary.totals { margin: 10px 0; }
+.grid > .field:has(.chips) { grid-column: 1 / -1; }
+/* ---------- offline and outbox ---------- */
+.outbox-bar { display:flex; flex-wrap:wrap; align-items:center; gap: 8px; padding: 8px 14px; font-size: .95rem; }
+.outbox-bar.offline { background: var(--coho-black); color:#fff; border-bottom: 4px solid var(--slate); }
+.outbox-bar.waiting { background: #fff3cd; color:#5c4400; }
+.outbox-bar.fail { background:#fde1e3; color: var(--coho-black); border-left: 6px solid var(--coho-red); font-weight: 400; }
+.outbox-bar a { color: inherit; }
+.outbox-item { border:1px solid var(--line); border-radius: 8px; padding: 10px; display:flex; flex-direction:column; gap: 4px; background:#fff; }
+.outbox-item.failed, .outbox-item.sign_in { border-left: 6px solid var(--coho-red); }
+.row.spread { justify-content: space-between; }
+.pill.long { background: var(--coho-black); color:#fff; font-weight:700; }
+.approval-range { margin: 8px 0; }
+.approval-range > button.on { background: var(--coho-black); color:#fff; border-color: var(--coho-black); }
+.period-label { white-space: nowrap; }
+.timesheet-settings { border:1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin: 10px 0 16px; }
+table.fortnight td small.help { display:block; }

@@ -57,6 +57,17 @@ export function FieldInput({ field, value, onChange }: { field: Field; value: an
         <button type="button" className="small" onClick={() => onChange(nowIso())}>Now</button>
       </span>); break;
     case 'time': input = <input id={id} type="time" value={value ?? ''} onChange={e => onChange(e.target.value || null)} />; break;
+    case 'multi': {
+      const cur: string[] = Array.isArray(value) ? value : [];
+      input = (
+        <span className="chips" id={id} role="group" aria-label={field.label}>
+          {(field.options ?? []).map(o => {
+            const on = cur.includes(o);
+            return <label key={o} className={'chip-toggle' + (on ? ' on' : '')}>
+              <input type="checkbox" checked={on} onChange={() => onChange(on ? cur.filter(x => x !== o) : [...cur, o])} />{o}</label>;
+          })}
+        </span>); break;
+    }
     case 'bool': input = <input id={id} type="checkbox" checked={!!value} onChange={e => onChange(e.target.checked)} />; break;
     case 'select': {
       const from = field.optionsFrom;
@@ -218,6 +229,12 @@ export function QrScanner({ onResult }: { onResult: (text: string) => void }) {
 // ---------- access: hidden / read only / edit ----------
 const ReadOnlyCtx = createContext(false);
 export const useReadOnly = () => useContext(ReadOnlyCtx);
+
+/** Makes part of a screen read only (e.g. a form once it is submitted). */
+export function ReadOnlyArea({ on, children }: { on: boolean; children: ReactNode }) {
+  const outer = useReadOnly();
+  return <ReadOnlyCtx.Provider value={outer || on}>{children}</ReadOnlyCtx.Provider>;
+}
 
 /** Shows children only when the current screen is editable for this role. */
 export function EditOnly({ children }: { children: ReactNode }) {

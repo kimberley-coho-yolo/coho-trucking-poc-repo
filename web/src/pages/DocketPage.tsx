@@ -7,6 +7,8 @@ import { DEPARTMENT_EXTRAS } from '../lib/extras';
 import { EditOnly, errText, FieldGrid, FieldInput, fmt, nowIso, Page, SignaturePad, useReadOnly, useToast } from '../components/ui';
 import { ClonePanel, PeoplePicker, RowsBlock } from '../components/docket';
 import { useAccess, useApp } from '../state';
+import { isLong } from '../lib/timesheetSync';
+import { hoursBetween } from '../lib/timesheet';
 
 const isConflict = (e: unknown) => (e as any)?.code === '40001' || /changed on another device/i.test(errText(e));
 
@@ -92,7 +94,8 @@ export default function DocketPage() {
         setSign(s);
       }
       setD(toView(saved)); setDirty(false); setNotice(null);
-      toast.show(opts.close ? 'Docket closed' : 'Saved. Everyone with this docket open now sees it.');
+      toast.show(saved.__queued ? (opts.close ? 'Docket closed on this device. It will send by itself when there is signal, then your timesheet updates.' : 'Saved on this device. It will send by itself when there is signal.')
+        : opts.close ? 'Docket closed. Your timesheet for this day is updated.' : 'Saved. Everyone with this docket open now sees it.');
       if (opts.exit) nav(office ? '/dockets' : '/');
       else if (opts.close && d.shift_id) nav('/shift/' + d.shift_id);
     } catch (e) {
@@ -105,8 +108,8 @@ export default function DocketPage() {
     if (!row) return;
     try {
       const body = fromView({ ...row, docket_id: d.id, sort: row.sort ?? rows.length }, 'loads');
-      await backend().save('loads', body);
-      setRow(null); await loadRows(); toast.show('Row saved');
+      const savedRow = await backend().save('loads', body);
+      setRow(null); await loadRows(); toast.show(savedRow.__queued ? 'Row saved on this device. It will send when there is signal.' : 'Row saved');
     } catch (e) { toast.show(errText(e), 'err'); }
   };
   const deleteRow = async () => {
@@ -136,8 +139,10 @@ export default function DocketPage() {
         <span><b>Docket No.</b> {d.docket_no ?? '(new)'}</span>
         {form.ref && <span>{form.ref}</span>}
         <span>Last saved {fmt(d.updated_at ?? d.created_at)}</span>
+        {d.__queued && <Link to="/outbox" className="pill draft">Not sent yet</Link>}
         {d.cloned_from && <Link to={'/docket/' + d.cloned_from}>Copied from an earlier docket</Link>}
         {d.shift_id && <Link to={'/shift/' + d.shift_id}>Open the shift</Link>}
+        {person && (d.work_date || d.start_at) && <Link to={`/forms/timesheet?person=${person.id}&start=${d.work_date ?? String(d.start_at).slice(0, 10)}`}>My timesheet</Link>}
       </div>
       {notice && <div className="note live-note" role="alert">{notice.text} <button className="small" onClick={() => loadAll()}>Reload</button></div>}
       {dirty && !notice && <p className="unsaved" role="status">Unsaved changes</p>}
@@ -173,7 +178,9 @@ export default function DocketPage() {
       )) : <fieldset><legend>{form.rows.label}</legend>{rowsBlock()}</fieldset>}
 
       {!!form.footer.length && <fieldset><legend>{form.footerTitle ?? 'More'}</legend><FieldGrid fields={form.footer} value={d} onChange={upd} /></fieldset>}
-      <fieldset><legend>Times (used for timesheets and km)</legend><FieldGrid fields={TIME_FIELDS} value={d} onChange={upd} /></fieldset>
+      <fieldset><legend>Times (used for timesheets and km)</legend><FieldGrid fields={TIME_FIELDS} value={d} onChange={upd} />
+        {isLong(d.start_at, d.end_at, d.over_24h) && <p className="note"><span className="pill long">24 h+</span> This shift runs from {fmt(d.start_at)} to {fmt(d.end_at)} ({hoursBetween(d.start_at, d.end_at).toFixed(1)} hours). Its hours are split across each day on the timesheet{!d.over_24h ? ', even though the box is not ticked' : ''}.</p>}
+      </fieldset>
 
       {form.signoff && <fieldset><legend>{form.signoff.title}</legend>
         <FieldGrid fields={signFields} value={sign} onChange={updSign} />

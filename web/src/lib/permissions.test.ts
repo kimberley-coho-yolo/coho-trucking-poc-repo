@@ -8,7 +8,7 @@ const f = (code: string) => FEATURES.find(x => x.code === code)!;
 describe('access rules', () => {
   it('drivers get the basics only by default', () => {
     const edit = FEATURES.filter(x => defaultAccess('driver', x) === 'edit').map(x => x.code).sort();
-    expect(edit).toEqual(['dockets', 'faults', 'shifts']);
+    expect(edit).toEqual(['dockets', 'faults', 'forms', 'shifts']);
     expect(defaultAccess('driver', f('reports'))).toBe('hidden');
     expect(defaultAccess('driver', f('integrations'))).toBe('hidden');
   });
