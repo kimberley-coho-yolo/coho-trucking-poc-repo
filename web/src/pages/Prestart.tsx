@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { backend, type Row } from '../lib/backend';
-import { errText, fmt, nowIso, Page, useToast } from '../components/ui';
+import { EditOnly, errText, fmt, nowIso, Page, useToast } from '../components/ui';
 
 export default function Prestart() {
   const { id } = useParams();
@@ -44,14 +44,14 @@ export default function Prestart() {
       <h2>Prestarts for this truck in the last 12 hours</h2>
       {records.length ? <ul>{records.map(r => <li key={r.id}>{fmt(r.done_at)} · <b>{r.result}</b> · {r.driver_name ?? ''} · {r.gearbox_ref ?? ''}</li>)}</ul>
         : <p className="muted">None found. Gearbox results arrive here once the integration is built, or when the office uploads a prestart spreadsheet.</p>}
-      {found && <button className="primary" onClick={() => { setRef(found.gearbox_ref ?? ''); mark('passed'); }}>Use this prestart</button>}
+      {found && <EditOnly><button className="primary" onClick={() => { setRef(found.gearbox_ref ?? ''); mark('passed'); }}>Use this prestart</button></EditOnly>}
       <div className="grid">
         <label className="field"><span className="field-label">Gearbox prestart reference</span><input value={ref} onChange={e => setRef(e.target.value)} /></label>
         <label className="field"><span className="field-label">Faults found (if failed)</span><textarea value={faults} onChange={e => setFaults(e.target.value)} /></label>
       </div>
       <div className="savebar">
-        <button className="primary" onClick={() => mark('passed')}>Prestart passed</button>
-        <button className="danger" onClick={() => mark('failed')}>Prestart failed</button>
+        <EditOnly><button className="primary" onClick={() => mark('passed')}>Prestart passed</button>
+        <button className="danger" onClick={() => mark('failed')}>Prestart failed</button></EditOnly>
         <button onClick={() => nav('/')}>Save and exit</button>
       </div>
       {toast.node}

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { backend } from '../lib/backend';
 import { TABLES } from '../lib/schema';
-import { errText, FieldGrid, nowIso, Page, useToast } from '../components/ui';
+import { EditOnly, errText, FieldGrid, nowIso, Page, useToast } from '../components/ui';
 
 export default function FaultPage() {
   const [q] = useSearchParams();
@@ -24,7 +24,7 @@ export default function FaultPage() {
       <li>Tap <b>Save fault</b>. In the full build this alerts the trucking supervisor and HSE and creates a Gearbox work order.</li>
     </ol>}>
       <FieldGrid fields={TABLES.faults.fields} value={row} onChange={setRow} />
-      <div className="savebar"><button className="primary" onClick={save}>Save fault</button><button onClick={() => nav(-1)}>Cancel</button></div>
+      <div className="savebar"><EditOnly><button className="primary" onClick={save}>Save fault</button></EditOnly><button onClick={() => nav(-1)}>Cancel</button></div>
       {toast.node}
     </Page>
   );

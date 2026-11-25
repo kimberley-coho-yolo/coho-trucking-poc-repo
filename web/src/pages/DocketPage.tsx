@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { backend, type Row } from '../lib/backend';
 import { TABLES } from '../lib/schema';
 import { DEPARTMENT_EXTRAS } from '../lib/extras';
-import { DataTable, errText, FieldGrid, nowIso, Page, SignaturePad, useToast } from '../components/ui';
+import { DataTable, EditOnly, errText, FieldGrid, nowIso, Page, SignaturePad, useToast } from '../components/ui';
 
 const F = (names: string[], t: 'dockets' | 'loads' | 'signoffs' = 'dockets') => TABLES[t].fields.filter(f => names.includes(f.name));
 
@@ -58,9 +58,9 @@ export default function DocketPage() {
         <DataTable table="loads" rows={loads} onOpen={r => setLoad(r)} columns={['depart_at', 'task', 'material', 'volume_in_l', 'volume_out_l', 'docket_no']} />
         {load ? (<div className="subform">
           <FieldGrid fields={TABLES.loads.fields} value={load} onChange={setLoad} />
-          <div className="row"><button className="primary" onClick={saveLoad}>Save load</button><button onClick={() => setLoad(null)}>Cancel</button>
-            {load.id && <button className="danger" onClick={async () => { await backend().remove('loads', load.id); setLoad(null); refresh(); }}>Delete load</button>}</div>
-        </div>) : <button onClick={() => setLoad({ depart_at: nowIso() })}>Add a load</button>}
+          <div className="row"><EditOnly><button className="primary" onClick={saveLoad}>Save load</button></EditOnly><button onClick={() => setLoad(null)}>Cancel</button>
+            <EditOnly>{load.id && <button className="danger" onClick={async () => { await backend().remove('loads', load.id); setLoad(null); refresh(); }}>Delete load</button>}</EditOnly></div>
+        </div>) : <EditOnly><button onClick={() => setLoad({ depart_at: nowIso() })}>Add a load</button></EditOnly>}
       </fieldset>
       <fieldset><legend>End of job</legend><FieldGrid fields={F(['fuel_l', 'odo_start', 'odo_end', 'km', 'equipment_on_site', 'notes'])} value={d} onChange={setD} /></fieldset>
       <fieldset><legend>Client sign-off</legend>
@@ -68,9 +68,9 @@ export default function DocketPage() {
         <SignaturePad value={sign.signature_png} onChange={v => setSign({ ...sign, signature_png: v })} />
       </fieldset>
       <div className="savebar">
-        <button onClick={() => save()}>Save</button>
+        <EditOnly><button onClick={() => save()}>Save</button>
         <button onClick={() => save({ exit: true })}>Save and exit</button>
-        {d.status !== 'closed' && <button className="primary" onClick={() => save({ close: true })}>Close docket</button>}
+        {d.status !== 'closed' && <button className="primary" onClick={() => save({ close: true })}>Close docket</button>}</EditOnly>
         <button onClick={() => nav('/shift/' + d.shift_id)}>Back to shift</button>
       </div>
       {toast.node}

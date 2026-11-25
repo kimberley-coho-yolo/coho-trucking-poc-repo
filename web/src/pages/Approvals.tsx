@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { backend, type Row } from '../lib/backend';
-import { errText, nowIso, Page, refLabel, useRows, useToast } from '../components/ui';
+import { EditOnly, errText, nowIso, Page, refLabel, useReadOnly, useRows, useToast } from '../components/ui';
 import { downloadRows } from '../lib/importExport';
 import { useApp } from '../state';
 
@@ -10,6 +10,7 @@ export default function Approvals() {
   const people = useRows('people');
   const [status, setStatus] = useState('submitted');
   const [rows, setRows] = useState<Row[]>([]);
+  const readOnly = useReadOnly();
   const [comments, setComments] = useState<Record<string, string>>({});
   const load = async () => setRows((await backend().list('timesheet_lines', status ? { status } : {}, { column: 'work_date' })));
   useEffect(() => { load(); }, [status]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -39,9 +40,9 @@ export default function Approvals() {
         <tbody>{rows.map(r => <tr key={r.id}>
           <td>{refLabel('people', people, r.person_id)}</td><td>{r.work_date}</td><td>{r.total_hours}</td><td>{r.docket_hours}</td><td>{r.travel_hours}</td>
           <td>{r.standby_hours}</td><td>{r.rr ? 'Yes' : ''}</td><td>{r.wet_hours}</td><td>{r.work_diary_page}</td>
-          <td><input value={comments[r.id] ?? r.supervisor_comment ?? ''} onChange={e => setComments({ ...comments, [r.id]: e.target.value })} /></td>
-          <td className="row">{r.status !== 'approved' && <><button className="small primary" onClick={() => decide(r, 'approved')}>Approve</button>
-            <button className="small" onClick={() => decide(r, 'queried')}>Query</button></>}{r.status === 'approved' && <span className="pill approved">approved</span>}</td>
+          <td><input disabled={readOnly} value={comments[r.id] ?? r.supervisor_comment ?? ''} onChange={e => setComments({ ...comments, [r.id]: e.target.value })} /></td>
+          <td className="row">{r.status !== 'approved' && <EditOnly><button className="small primary" onClick={() => decide(r, 'approved')}>Approve</button>
+            <button className="small" onClick={() => decide(r, 'queried')}>Query</button></EditOnly>}{r.status === 'approved' && <span className="pill approved">approved</span>}</td>
         </tr>)}{!rows.length && <tr><td colSpan={11} className="muted">Nothing here</td></tr>}</tbody>
       </table></div>
       {toast.node}

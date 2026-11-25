@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { backend } from '../lib/backend';
 import { useApp } from '../state';
-import { errText, FieldInput, nowIso, Page, QrScanner, todayIso, useRows, useToast } from '../components/ui';
+import { EditOnly, errText, FieldInput, nowIso, Page, QrScanner, todayIso, useRows, useToast } from '../components/ui';
 import { TABLES } from '../lib/schema';
 
 export default function StartShift() {
@@ -43,8 +43,8 @@ export default function StartShift() {
           <FieldInput key={n} field={f(n)} value={row[n]} onChange={v => setRow({ ...row, [n]: v })} />)}
       </div>
       <div className="savebar">
-        <button className="primary" onClick={() => save(false)}>Next: prestart</button>
-        <button onClick={() => save(true)}>Save and exit</button>
+        <EditOnly><button className="primary" onClick={() => save(false)}>Next: prestart</button>
+        <button onClick={() => save(true)}>Save and exit</button></EditOnly>
       </div>
       {toast.node}
     </Page>

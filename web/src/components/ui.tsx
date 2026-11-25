@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
+import type { Access } from '../lib/permissions';
 import { backend, type Row } from '../lib/backend';
 import { TABLES, type Field, type TableName } from '../lib/schema';
 
@@ -41,7 +43,8 @@ export function refLabel(table: TableName, rows: Row[], id?: string | null) {
 
 // ---------- one input for any field type ----------
 export function FieldInput({ field, value, onChange }: { field: Field; value: any; onChange: (v: any) => void }) {
-  const refRows = useRows(field.ref ?? 'integrations');
+  const refRows = useRows(field.optionsFrom?.table ?? field.ref ?? 'integrations');
+  const readOnly = useReadOnly();
   const id = 'f-' + field.name;
   let input: ReactNode;
   switch (field.type) {
@@ -54,11 +57,17 @@ export function FieldInput({ field, value, onChange }: { field: Field; value: an
         <button type="button" className="small" onClick={() => onChange(nowIso())}>Now</button>
       </span>); break;
     case 'bool': input = <input id={id} type="checkbox" checked={!!value} onChange={e => onChange(e.target.checked)} />; break;
-    case 'select': input = (
+    case 'select': {
+      const from = field.optionsFrom;
+      const opts = from && refRows.length
+        ? refRows.filter(r => r.active !== false || r[from.value] === value).map(r => ({ v: String(r[from.value]), l: String(r[from.label] ?? r[from.value]) }))
+        : field.options!.map(o => ({ v: o, l: o }));
+      input = (
       <select id={id} value={value ?? ''} onChange={e => onChange(e.target.value || null)}>
         <option value="">(none)</option>
-        {field.options!.map(o => <option key={o} value={o}>{o}</option>)}
+        {opts.map(o => <option key={o.v} value={o.v}>{o.l}</option>)}
       </select>); break;
+    }
     case 'ref': input = (
       <select id={id} value={value ?? ''} onChange={e => onChange(e.target.value || null)}>
         <option value="">(none)</option>
@@ -71,7 +80,7 @@ export function FieldInput({ field, value, onChange }: { field: Field; value: an
   return (
     <label className={'field ' + (field.type === 'bool' ? 'field-bool' : '')} htmlFor={id}>
       <span className="field-label">{field.label}</span>
-      {input}
+      {readOnly ? <fieldset disabled className="ro">{input}</fieldset> : input}
       {field.help && <small className="help">{field.help}</small>}
     </label>
   );
@@ -202,5 +211,31 @@ export function QrScanner({ onResult }: { onResult: (text: string) => void }) {
       {on && <video ref={video} className="qr-video" muted playsInline />}
       {err && <p className="err">{err}</p>}
     </div>
+  );
+}
+
+// ---------- access: hidden / read only / edit ----------
+const ReadOnlyCtx = createContext(false);
+export const useReadOnly = () => useContext(ReadOnlyCtx);
+
+/** Shows children only when the current screen is editable for this role. */
+export function EditOnly({ children }: { children: ReactNode }) {
+  return useReadOnly() ? null : <>{children}</>;
+}
+
+/** Wraps a screen: hidden = "not available" message, read = everything shown but nothing can be changed. */
+export function Guard({ access, children }: { access: Access; children: ReactNode }) {
+  if (access === 'hidden') return (
+    <section className="page narrow">
+      <h1>Not available</h1>
+      <p>Your role does not have access to this screen. If you need it, ask an admin to change your role's access in <b>Settings</b>.</p>
+      <Link className="button" to="/">Back to home</Link>
+    </section>
+  );
+  return (
+    <ReadOnlyCtx.Provider value={access === 'read'}>
+      {access === 'read' && <p className="note readonly-note" role="status">Read only: your role can view this screen but not change it.</p>}
+      {children}
+    </ReadOnlyCtx.Provider>
   );
 }

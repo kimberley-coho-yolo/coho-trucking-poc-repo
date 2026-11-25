@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { backend, type Row } from '../lib/backend';
 import { TABLES } from '../lib/schema';
 import { draftTimesheet } from '../lib/timesheet';
-import { errText, FieldGrid, nowIso, Page, useToast } from '../components/ui';
+import { EditOnly, errText, FieldGrid, nowIso, Page, useToast } from '../components/ui';
 import { useApp } from '../state';
 
 export default function EndShift() {
@@ -43,8 +43,8 @@ export default function EndShift() {
     </ol>}>
       <FieldGrid fields={fields} value={line} onChange={setLine} />
       <div className="savebar">
-        <button className="primary" onClick={() => save(true)}>Submit and sign out</button>
-        <button onClick={() => save(false)}>Save and exit</button>
+        <EditOnly><button className="primary" onClick={() => save(true)}>Submit and sign out</button>
+        <button onClick={() => save(false)}>Save and exit</button></EditOnly>
         <button onClick={() => nav('/shift/' + shift.id)}>Back to shift</button>
       </div>
       {toast.node}

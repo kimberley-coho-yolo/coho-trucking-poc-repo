@@ -1,6 +1,7 @@
 // Made-up demo data. Mirrors supabase/seed.sql and adds a worked example
 // (Truck 04 night shift: Origin then Santos) so every screen has something to show.
 import type { Row } from './backend';
+import { defaultAccess, FEATURES, SYSTEM_ROLES } from './permissions';
 
 const C1 = '11111111-0000-0000-0000-000000000001', C2 = '11111111-0000-0000-0000-000000000002';
 const L1 = '22222222-0000-0000-0000-000000000001', L2 = '22222222-0000-0000-0000-000000000002', L3 = '22222222-0000-0000-0000-000000000003';
@@ -103,12 +104,22 @@ export function demoSeed(): Record<string, Row[]> {
       { id: 'i2', system: 'Fleet Complete (Powerfleet)', purpose: 'GPS trips and odometer', direction: 'In', api_status: 'Published API, token to request', stand_in: 'Upload GPS trips spreadsheet', sort_order: 2 },
       { id: 'i3', system: 'Gearbox / Gearbox Prestart', purpose: 'Prestart results in, faults out', direction: 'In and out', api_status: 'API on request; webhook', stand_in: 'Upload prestart spreadsheet; driver confirms prestart', sort_order: 3 },
       { id: 'i4', system: 'MYOB AccountRight', purpose: 'Approved hours to payroll; invoice lines', direction: 'Out', api_status: 'Published API', stand_in: 'Export approved timesheet lines and daily customer report', sort_order: 4 },
-      { id: 'i5', system: 'SMS provider (e.g. Twilio)', purpose: 'Sign-in codes to work mobiles', direction: 'Out', api_status: 'Published API', stand_in: 'Email sign-in, or Supabase test phone numbers', sort_order: 5 },
+      { id: 'i5', system: 'SMS provider: Mobile Message', purpose: 'Sign-in codes to work mobiles', direction: 'Out', api_status: 'Connected via Supabase Send SMS hook', status: 'Connected', stand_in: 'Email sign-in', sort_order: 5 },
       { id: 'i6', system: 'Microsoft 365', purpose: '07:30 and approval emails', direction: 'Out', api_status: 'Published API', stand_in: 'Reports screen, export', sort_order: 6 },
       { id: 'i7', system: 'Fabric lakehouse / Power BI', purpose: 'Management reporting', direction: 'Out', api_status: 'Published API', stand_in: 'Export to CSV or Excel', sort_order: 7 },
       { id: 'i8', system: 'Momentum IoT', purpose: 'Camera event links', direction: 'In', api_status: 'API on request', stand_in: 'Not in PoC', sort_order: 8 },
       { id: 'i9', system: 'Jotform', purpose: 'Existing forms during transition', direction: 'In', api_status: 'Published API', stand_in: 'Replaced by dockets in the app', sort_order: 9 },
     ],
     audit_log: [],
+    ...demoSettings(),
+  };
+}
+
+/** Roles, the list of functions and the starting access settings (same defaults as the database). */
+export function demoSettings(): Record<string, Row[]> {
+  return {
+    roles: SYSTEM_ROLES.map(r => ({ id: 'role-' + r.code, ...r, is_system: true, active: true })),
+    features: FEATURES.map(f => ({ id: 'feat-' + f.code, ...f })),
+    role_permissions: SYSTEM_ROLES.flatMap(r => FEATURES.map(f => ({ id: `rp-${r.code}-${f.code}`, role: r.code, feature: f.code, access: defaultAccess(r.code, f) }))),
   };
 }

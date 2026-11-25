@@ -11,6 +11,7 @@ export interface Field {
   type: FieldType;
   ref?: TableName;          // for type 'ref'
   options?: string[];       // for type 'select'
+  optionsFrom?: { table: TableName; value: string; label: string };  // for type 'select' with options from a table
   help?: string;
   hideInTable?: boolean;
 }
@@ -19,12 +20,12 @@ export type TableName =
   | 'app_logins' | 'people' | 'work_phones' | 'phone_assignments' | 'trucks' | 'equipment'
   | 'customers' | 'locations' | 'jobs' | 'allocations' | 'shifts' | 'dockets' | 'loads'
   | 'signoffs' | 'faults' | 'timesheet_lines' | 'gps_trips' | 'prestart_records'
-  | 'km_segments' | 'import_batches' | 'integrations' | 'audit_log';
+  | 'km_segments' | 'import_batches' | 'integrations' | 'audit_log' | 'roles' | 'features' | 'role_permissions';
 
 export interface TableDef {
   name: TableName;
   label: string;
-  group: 'Access' | 'Reference' | 'Planning' | 'Driver work' | 'Integration stand-ins' | 'System';
+  group: 'Access' | 'Reference' | 'Planning' | 'Driver work' | 'Integration stand-ins' | 'System' | 'Settings';
   display: (r: Record<string, any>) => string;   // how a row shows in drop-downs
   fields: Field[];
   importable?: boolean;
@@ -42,7 +43,7 @@ export const TABLES: Record<TableName, TableDef> = {
       { name: 'label', label: 'Label', type: 'text', help: 'A name for this login, e.g. "Crew phone 1" or a person' },
       { name: 'email', label: 'Email', type: 'email', help: 'Sign in with a code sent to this email' },
       { name: 'phone', label: 'Mobile', type: 'phone', help: 'Sign in with a code texted to this mobile. Any format, e.g. 0400 000 001' },
-      { name: 'role', label: 'Role', type: 'select', options: ROLES },
+      { name: 'role', label: 'Role', type: 'select', options: ROLES, optionsFrom: { table: 'roles', value: 'code', label: 'label' }, help: 'Roles and what each can see are set in Settings (admin only)' },
       { name: 'person_id', label: 'Person (optional)', type: 'ref', ref: 'people' },
       { name: 'active', label: 'Active', type: 'bool' },
     ],
@@ -314,7 +315,40 @@ export const TABLES: Record<TableName, TableDef> = {
       { name: 'purpose', label: 'Purpose', type: 'text' },
       { name: 'direction', label: 'Direction', type: 'text' },
       { name: 'api_status', label: 'API status', type: 'text' },
+      { name: 'status', label: 'Progress', type: 'select', options: ['Not started', 'Access requested', 'In progress', 'Connected', 'Paused'] },
+      { name: 'owner', label: 'Owner', type: 'text', help: 'Who is looking after this integration' },
       { name: 'stand_in', label: 'Until integrated', type: 'text' },
+      { name: 'sort_order', label: 'Order', type: 'number', hideInTable: true },
+      { name: 'notes', label: 'Notes', type: 'textarea', hideInTable: true, help: 'Never put API keys or passwords here. They go in Supabase secrets.' },
+    ],
+  },
+  roles: {
+    name: 'roles', label: 'Roles', group: 'Settings',
+    display: r => r.label || r.code || '',
+    fields: [
+      { name: 'label', label: 'Name', type: 'text' },
+      { name: 'code', label: 'Code', type: 'text', help: 'Short lower-case id, e.g. hse. Set once.' },
+      { name: 'description', label: 'Description', type: 'textarea' },
+      { name: 'rank', label: 'Priority', type: 'number', help: 'If someone has several logins, the lowest number wins' },
+      { name: 'active', label: 'Active', type: 'bool' },
+    ],
+  },
+  features: {
+    name: 'features', label: 'Functions', group: 'Settings',
+    display: r => r.label || r.code || '',
+    fields: [
+      { name: 'label', label: 'Function', type: 'text' },
+      { name: 'grp', label: 'Group', type: 'text' },
+      { name: 'description', label: 'What it covers', type: 'text' },
+    ],
+  },
+  role_permissions: {
+    name: 'role_permissions', label: 'Role access', group: 'Settings',
+    display: r => `${r.role} ${r.feature}`,
+    fields: [
+      { name: 'role', label: 'Role', type: 'text' },
+      { name: 'feature', label: 'Function', type: 'text' },
+      { name: 'access', label: 'Access', type: 'select', options: ['hidden', 'read', 'edit'] },
     ],
   },
   audit_log: {

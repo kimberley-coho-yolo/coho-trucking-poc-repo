@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { backend, type Row } from '../lib/backend';
-import { DataTable, errText, fmt, nowIso, Page, refLabel, useRows, useToast } from '../components/ui';
+import { DataTable, errText, fmt, nowIso, Page, refLabel, useReadOnly, useRows, useToast } from '../components/ui';
 
 export default function ShiftHome() {
   const { id } = useParams();
   const nav = useNavigate();
+  const readOnly = useReadOnly();
   const toast = useToast();
   const [shift, setShift] = useState<Row | null>(null);
   const [dockets, setDockets] = useState<Row[]>([]);
@@ -52,11 +53,11 @@ export default function ShiftHome() {
       {pre === 'failed' && <p className="err">Prestart failed: the truck is tagged out. The supervisor and HSE have been told.</p>}
       <h2>Today's jobs for this truck</h2>
       <div className="stack">
-        {jobs.map(j => <button key={j.id} className="big" disabled={!!open} onClick={() => startDocket(j)}>
+        {jobs.map(j => <button key={j.id} className="big" disabled={!!open || readOnly} onClick={() => startDocket(j)}>
           {refLabel('customers', customers, j.customer_id) || 'Customer ?'} · {refLabel('locations', locations, j.location_id) || 'Rig ?'}
           <small>Project {j.project_no ?? '-'} · Task {j.task_no ?? '-'} · PO {j.po ?? '-'}</small></button>)}
         {!jobs.length && <p className="muted">No jobs allocated to this truck for this date.</p>}
-        <button disabled={!!open} onClick={() => startDocket()}>Blank docket</button>
+        <button disabled={!!open || readOnly} onClick={() => startDocket()}>Blank docket</button>
         {open && <p className="note">Docket in progress. <Link to={'/docket/' + open.id}>Open it</Link> and close it before starting another.</p>}
       </div>
       <h2>Dockets this shift</h2>

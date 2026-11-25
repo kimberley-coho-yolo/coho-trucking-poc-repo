@@ -95,3 +95,25 @@ footer.site .foot { padding: 10px 12px; font-size: .8rem; color: var(--slate); t
 .brand-logo { display:block; width:160px; height:auto; margin: 8px auto 20px; padding: 12px; box-sizing: content-box; }
 .app-name { text-align:center; margin-bottom: 4px; }
 .app-tagline { text-align:center; color: var(--slate); margin: 0 0 16px; }
+/* Read only screens: inputs keep their layout but cannot be changed */
+fieldset.ro { border: none; margin: 0; padding: 0; min-width: 0; display: contents; }
+fieldset.ro input, fieldset.ro select, fieldset.ro textarea { background: var(--light); color: var(--coho-black); }
+.readonly-note { max-width: 1100px; margin: 0 auto 8px; }
+/* Settings: roles and access */
+.access-grid td, .access-grid th { vertical-align: middle; }
+.access-grid .fn small { display:block; font-weight:400; color: var(--slate); font-size: .8rem; }
+.seg { display:inline-flex; border:1px solid var(--line); border-radius: 8px; overflow:hidden; }
+.seg button { border:none; border-radius:0; min-height: 40px; padding: 6px 10px; font-size: .9rem; border-right:1px solid var(--line); background:#fff; }
+.seg button:last-child { border-right:none; }
+.seg button.on { background: var(--coho-black); color:#fff; font-weight:700; }
+.seg button.on.hidden-on { background: var(--slate); }
+.seg button:disabled { opacity: .45; }
+.lock { font-size: .8rem; color: var(--slate); }
+.changed { box-shadow: inset 4px 0 0 var(--coho-red); }
+.role-tabs { display:flex; flex-wrap:wrap; gap:6px; margin: 8px 0 12px; }
+.role-tabs button.on { background: var(--coho-black); color:#fff; border-color: var(--coho-black); }
+.role-tabs button.retired { text-decoration: line-through; }
+.matrix th.rot { white-space: nowrap; }
+.matrix td.lvl { text-align:center; font-size:.8rem; }
+.matrix td.lvl.edit { font-weight:700; }
+.matrix td.lvl.hidden { color: var(--slate); }

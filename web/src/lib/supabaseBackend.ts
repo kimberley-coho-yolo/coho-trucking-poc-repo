@@ -3,6 +3,7 @@ import type { Backend, Filter, Role, Row, Session } from './backend';
 import { clean } from './backend';
 import type { TableName } from './schema';
 import { toE164 } from './phone';
+import type { Perms } from './permissions';
 
 export class SupabaseBackend implements Backend {
   mode = 'supabase' as const;
@@ -34,6 +35,11 @@ export class SupabaseBackend implements Backend {
     const { data, error } = await this.sb.rpc('app_role');
     if (error) throw error;
     return (data as Role) ?? null;
+  }
+  async myPermissions() {
+    const { data, error } = await this.sb.rpc('my_permissions');
+    if (error) throw error;
+    return (data as Perms) ?? {};
   }
   async claimFirstAdmin() {
     const { data, error } = await this.sb.rpc('claim_first_admin', { p_label: 'First admin' });

@@ -2,9 +2,11 @@
 //  - SupabaseBackend: the real database (when VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set)
 //  - DemoBackend: an in-browser copy with made-up data, for training and screenshots
 import type { TableName } from './schema';
+import type { Perms } from './permissions';
 
 export type Row = Record<string, any>;
-export type Role = 'driver' | 'supervisor' | 'office' | 'admin';
+// Built-in roles are driver, supervisor, office and admin; admins can add more in Settings.
+export type Role = string;
 
 export interface Filter { [column: string]: string | number | boolean | null }
 
@@ -22,6 +24,7 @@ export interface Backend {
   verifyCode(target: { email?: string; phone?: string }, code: string): Promise<Session>;
   signOut(): Promise<void>;
   myRole(): Promise<Role | null>;
+  myPermissions(): Promise<Perms>;               // hidden / read / edit for every function, for the signed-in user
   claimFirstAdmin(): Promise<string>;
   peopleForMyPhone(): Promise<Row[]>;
   // data
