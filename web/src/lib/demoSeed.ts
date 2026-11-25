@@ -86,6 +86,12 @@ export function demoSeed(): Record<string, Row[]> {
     timesheet_lines: [
       { id: 'ts1', status: 'submitted', person_id: P1, shift_id: 's1', work_date: dateOnly(y), on_shift: true, rr: false,
         docket_hours: 10.5, travel_hours: 1.5, standby_hours: 0.5, total_hours: 12, work_diary_page: '214', location: 'SAV 168, NIT 1', created_by: DRIVER_USER },
+      { id: 'ts2', status: 'submitted', person_id: P1, work_date: dateOnly(y - 1), on_shift: true, rr: false,
+        docket_hours: 9.5, travel_hours: 2, standby_hours: 0, total_hours: 11.5, work_diary_page: '213', location: 'SAV 168', created_by: DRIVER_USER },
+      { id: 'ts3', status: 'submitted', person_id: P2, work_date: dateOnly(y), on_shift: true, rr: false,
+        docket_hours: 9, travel_hours: 1, standby_hours: 1, total_hours: 10, work_diary_page: '88', location: 'NIT 1', created_by: DRIVER_USER },
+      { id: 'ts4', status: 'queried', person_id: P2, work_date: dateOnly(y - 1), on_shift: true, rr: false, supervisor_comment: 'Check travel hours',
+        docket_hours: 8, travel_hours: 3, standby_hours: 0, total_hours: 11, work_diary_page: '87', location: 'NIT 1', created_by: DRIVER_USER },
     ],
     gps_trips: [
       { id: 'g1', truck_id: T4, truck_ref: '04', start_at: at(y, 18, 10), end_at: at(y, 18, 30), km: 42, source_system: 'MyGeotab' },

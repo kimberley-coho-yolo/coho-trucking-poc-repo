@@ -37,7 +37,7 @@ export default function EndShift() {
   const fields = TABLES.timesheet_lines.fields.filter(f => !['status', 'supervisor_comment', 'person_id'].includes(f.name));
   return (
     <Page title="End shift and timesheet" howTo={<ol>
-      <li>The hours are worked out from your sign-in time and your dockets. <b>Travel hours</b> are time outside any docket and are not charged to a customer.</li>
+      <li>The hours are worked out from your sign-in time and your dockets. <b>Travel time</b> is hours (not distance) outside any docket and is not charged to a customer. Times are decimal hours: 0.5 = 30 minutes.</li>
       <li>Add R&R, wet hours and your work diary page. Change anything that is wrong and add a comment.</li>
       <li>Tap <b>Submit and sign out</b>. Your supervisor gets it for approval, and the phone is ready for the next crew.</li>
     </ol>}>

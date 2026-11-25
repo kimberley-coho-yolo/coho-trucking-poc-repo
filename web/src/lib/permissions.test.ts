@@ -19,7 +19,10 @@ describe('access rules', () => {
       expect(allowedLevels('office', f(code))).toEqual(['hidden', 'read']);
     }
   });
-  it('read-only functions never become editable', () => {
+  it('admin can do everything, including reports', () => {
+    for (const x of FEATURES) expect(effectiveAccess('admin', x, 'hidden')).toBe('edit');
+  });
+  it('read-only functions never become editable for other roles', () => {
     expect(effectiveAccess('supervisor', f('reports'), 'edit')).toBe('read');
   });
   it('the higher of two settings wins for shared screens', () => {

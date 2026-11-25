@@ -117,3 +117,15 @@ fieldset.ro input, fieldset.ro select, fieldset.ro textarea { background: var(--
 .matrix td.lvl { text-align:center; font-size:.8rem; }
 .matrix td.lvl.edit { font-weight:700; }
 .matrix td.lvl.hidden { color: var(--slate); }
+/* Approvals: one block per driver */
+details.driver-group { border:1px solid var(--line); border-radius: 10px; margin: 12px 0; background:#fff; }
+details.driver-group > summary { cursor:pointer; padding: 12px 14px; display:flex; flex-wrap:wrap; gap: 4px 12px; align-items:baseline; background: var(--light); border-radius: 10px; list-style-position: inside; }
+details.driver-group[open] > summary { border-bottom: 2px solid var(--coho-red); border-radius: 10px 10px 0 0; }
+.dg-name { font-weight:700; font-size:1.05rem; }
+.dg-meta { color: var(--slate); font-size:.9rem; }
+.dg-actions { padding: 10px 12px 0; }
+details.driver-group .table-wrap { border:none; border-radius:0; margin: 8px 0 0; }
+details.driver-group td, details.driver-group th { white-space: nowrap; }
+details.driver-group td input { min-width: 180px; min-height: 36px; }
+details.driver-group td.row { display: table-cell; }
+details.driver-group td.row button { margin-right: 6px; }

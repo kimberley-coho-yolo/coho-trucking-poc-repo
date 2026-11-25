@@ -47,7 +47,7 @@ export const SYSTEM_ROLES = [
 
 /** Starting access for the built-in roles (same rules as the database migration). */
 export function defaultAccess(role: string, f: Feature): Access {
-  if (role === 'admin') return f.max_level;
+  if (role === 'admin') return 'edit';
   if (['shifts', 'dockets', 'faults'].includes(f.code)) return 'edit';
   if (['drafts', 'help'].includes(f.code)) return 'read';
   if (role === 'driver') return 'hidden';
@@ -60,10 +60,10 @@ export function defaultAccess(role: string, f: Feature): Access {
   return 'hidden';
 }
 
-/** What a role really gets: admin always gets the most; admin-only and read-only functions are capped. */
+/** What a role really gets: admin can do everything; for other roles admin-only and read-only functions are capped. */
 export function effectiveAccess(role: string | null, f: Feature | undefined, stored: Access | undefined): Access {
   if (!role || !f) return 'hidden';
-  if (role === 'admin') return f.max_level;
+  if (role === 'admin') return 'edit';
   const a = stored ?? 'hidden';
   if (a === 'edit' && (f.admin_only_edit || f.max_level === 'read')) return 'read';
   return a;
@@ -71,7 +71,7 @@ export function effectiveAccess(role: string | null, f: Feature | undefined, sto
 
 /** Which choices the Settings screen offers for a role and function. */
 export function allowedLevels(role: string, f: Feature): Access[] {
-  if (role === 'admin') return [f.max_level];
+  if (role === 'admin') return ['edit'];
   return f.max_level === 'read' || f.admin_only_edit ? ['hidden', 'read'] : ['hidden', 'read', 'edit'];
 }
 

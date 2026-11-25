@@ -60,7 +60,7 @@ update public.role_permissions set access = 'edit' where role = 'driver' and fea
 
 -- admin is never restricted, and only admin changes settings
 select pg_temp.as_user('aaaaaaaa-0000-0000-0000-000000000009', '{"email":"boss@example.com"}');
-select pg_temp.check(public.access('settings') = 'edit' and public.access('integrations') = 'edit', 'admin edits settings and integrations');
+select pg_temp.check(public.access('settings') = 'edit' and public.access('integrations') = 'edit' and public.access('reports') = 'edit', 'admin edits everything, including reports');
 set role authenticated;
 update public.role_permissions set access = 'read' where role = 'hse' and feature = 'reports';
 select pg_temp.check((select access from public.role_permissions where role = 'hse' and feature = 'reports') = 'read', 'admin can change a role''s access');

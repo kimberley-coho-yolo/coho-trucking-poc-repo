@@ -138,7 +138,7 @@ export default function Settings() {
         </div>}
 
         {sel === 'admin'
-          ? <p className="note">Admin always has full access to everything, so there is always someone who can manage logins, integrations and these settings.</p>
+          ? <p className="note">Admin can do everything: every function is set to Edit and cannot be restricted, so there is always someone who can manage logins, integrations, reports and these settings.</p>
           : <EditOnly><div className="row" style={{ margin: '8px 0' }}>
               <span className="muted">Quick set:</span>
               <button className="small" onClick={() => setAll('hidden')}>All hidden</button>
@@ -167,7 +167,7 @@ export default function Settings() {
                         onClick={() => setDraft({ ...draft, [f.code]: a })}>{LEVEL_LABEL[a]}</button>))}
                   </div>
                   {sel !== 'admin' && f.admin_only_edit && <div className="lock">Only admin can edit</div>}
-                  {sel !== 'admin' && !f.admin_only_edit && f.max_level === 'read' && <div className="lock">Nothing to edit here</div>}
+                  {sel !== 'admin' && !f.admin_only_edit && f.max_level === 'read' && <div className="lock">Admin only can edit</div>}
                 </td>
               </tr>;
             })}
