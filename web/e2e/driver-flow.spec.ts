@@ -150,7 +150,9 @@ test('driver fills in a fortnight timesheet and an expense claim; supervisor app
   await page.click('button.card:has-text("Driver timesheet")');
   await page.waitForSelector('table.fortnight');
   // next fortnight has no demo data in it on any date, so the totals below are always just these two days
+  const current = await page.locator('.period-label').innerText();
   await page.click('button[aria-label="Next fortnight"]');
+  await expect(page.locator('.period-label')).not.toHaveText(current);   // wait until the page has moved to next fortnight before typing
   const day1 = page.locator('table.fortnight tbody tr').nth(0);
   const day2 = page.locator('table.fortnight tbody tr').nth(1);
   for (const [row, page_no] of [[day1, '508117'], [day2, '508118']] as const) {
@@ -279,7 +281,9 @@ test('a timesheet not sent is flagged to the driver; supervisors pick week, fort
   await page.click('nav >> text=Forms');
   await page.click('button.card:has-text("Driver timesheet")');
   await expect(page.locator('.period-label')).toContainText('Mon');                 // weeks start on Monday
+  const current = await page.locator('.period-label').innerText();
   await page.click('button[aria-label="Previous fortnight"]');
+  await expect(page.locator('.period-label')).not.toHaveText(current);   // wait until the page has moved to the previous fortnight before typing
   const row = page.locator('table.fortnight tbody tr').nth(0);
   await row.locator('select').nth(0).selectOption('On shift');
   await row.locator('input[type=number]').fill('10');
