@@ -43,6 +43,12 @@ export interface Backend {
   kickTexts?(): Promise<void>;
   // departments the signed-in reviewer covers; empty = all
   myReviewDepartments?(): Promise<string[]> | string[];
+  // new drivers: a crew phone adds a pending driver; a timesheet approver approves them or pairs their hours
+  addPendingDriver?(fullName: string): Promise<Row>;
+  approvePendingDriver?(personId: string): Promise<Row>;
+  pairPendingDriver?(personId: string, targetId: string): Promise<number>;
+  // a clash day (two lines for one person after pairing): keep one, optionally amended; the other is removed
+  resolveTimesheetClash?(keepId: string, removeId: string, amend: { total_hours?: number | null; work_diary_page?: string | null; comment?: string | null }): Promise<Row>;
 }
 
 /** The outbox (lib/outbox.ts) adds these on top of a Backend. */

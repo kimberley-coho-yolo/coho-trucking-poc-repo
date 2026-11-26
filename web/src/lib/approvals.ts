@@ -59,3 +59,11 @@ export function rangeFor(kind: RangeKind, today: string, s: PeriodSettings, view
 }
 export const inRange = (date: string | null | undefined, r: DateRange) =>
   (!r.from || (!!date && date >= r.from)) && (!r.to || (!!date && date <= r.to));
+
+// ---------- long days ----------
+/**
+ * The normal shift is 12 hours (06:00 to 18:00, or 18:00 to 06:00). Totals run from sign-in to sign-out, so a normal day is
+ * often 12.5 hours (05:45 to 18:15). Days recorded at more than 12.5 hours are kept as recorded and flagged for the approver to confirm.
+ */
+export const NORMAL_SHIFT_HOURS = 12.5;
+export const overNormal = (l: Row) => (Number(l.total_hours) || 0) > NORMAL_SHIFT_HOURS;

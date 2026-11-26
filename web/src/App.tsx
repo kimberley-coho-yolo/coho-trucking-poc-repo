@@ -30,6 +30,7 @@ import { APP_NAME } from './brand';
 import OutboxBar from './components/OutboxBar';
 import TimesheetReminder from './components/TimesheetReminder';
 import Outbox from './pages/Outbox';
+import Accounts from './pages/Accounts';
 
 const PERSON_KEY = 'coho-poc-person';
 
@@ -75,6 +76,7 @@ export default function App() {
             {canRead(perms, 'docket_assign') && <Link to="/roster">Roster</Link>}
             {(canRead(perms, 'forms') || canRead(perms, 'approvals')) && <Link to="/forms">Forms</Link>}
             {canRead(perms, 'approvals') && <Link to="/approvals">Approvals</Link>}
+            {canRead(perms, 'accounts_reports') && <Link to="/accounts">Accounts</Link>}
             {canRead(perms, 'reports') && <Link to="/reports">Reports</Link>}
             {DATA_FEATURES.some(f => canRead(perms, f)) && <Link to="/data">Data</Link>}
             {ADMIN_FEATURES.some(f => canRead(perms, f)) && <Link to="/admin">Admin</Link>}
@@ -108,6 +110,7 @@ export default function App() {
           <Route path="/drafts" element={<Guard access={best(perms, 'drafts')}><Drafts /></Guard>} />
           <Route path="/approvals" element={<Guard access={best(perms, 'approvals')}><Approvals /></Guard>} />
           <Route path="/reports" element={<Guard access={best(perms, 'reports')}><Reports /></Guard>} />
+          <Route path="/accounts" element={<Guard access={best(perms, 'accounts_reports')}><Accounts /></Guard>} />
           <Route path="/data" element={<Guard access={best(perms, ...DATA_FEATURES) === 'hidden' ? 'hidden' : 'edit'}><DataPage /></Guard>} />
           <Route path="/admin" element={<Guard access={best(perms, ...ADMIN_FEATURES) === 'hidden' ? 'hidden' : 'edit'}><AdminIndex /></Guard>} />
           <Route path="/admin/:table" element={<AdminRoute perms={perms} />} />

@@ -26,6 +26,7 @@ export const FEATURES: Feature[] = [
   { code: 'docket_assign', label: 'Assign dockets and roster', grp: 'Supervision', description: 'Read only: see the roster and who has which docket. Edit: assign dockets to crew phones, reassign them or cancel the assignment (texts the phone).', max_level: 'edit', admin_only_edit: false, sort: 52 },
   { code: 'docket_review', label: 'Review completed dockets', grp: 'Supervision', description: 'Read only: see completed dockets waiting for review. Edit: mark them reviewed or return them to the driver. Only for the departments set on the login (none set = all).', max_level: 'edit', admin_only_edit: false, sort: 54 },
   { code: 'approvals', label: 'Timesheet approvals', grp: 'Supervision', description: 'Read only: see timesheets, expense claims and checklists waiting. Edit: approve, authorise or return them.', max_level: 'edit', admin_only_edit: false, sort: 60 },
+  { code: 'accounts_reports', label: 'Accounts reports', grp: 'Supervision', description: 'Overdue timesheets, docket totals per customer, asset, user and status, and timesheets compared with their dockets. Read only.', max_level: 'read', admin_only_edit: false, sort: 75 },
   { code: 'reports', label: 'Reports', grp: 'Supervision', description: 'Hours and km per customer, rig, truck and travel.', max_level: 'read', admin_only_edit: false, sort: 70 },
   { code: 'people', label: 'People, work phones and phone sharing', grp: 'Admin lists', description: 'Who can be picked as a driver, crew phones and who uses which phone.', max_level: 'edit', admin_only_edit: false, sort: 80 },
   { code: 'fleet', label: 'Trucks, trailers and equipment', grp: 'Admin lists', description: 'Truck and trailer lists, QR codes, tracker and Gearbox IDs.', max_level: 'edit', admin_only_edit: false, sort: 90 },
@@ -44,6 +45,7 @@ export const FEATURES: Feature[] = [
 export const SYSTEM_ROLES = [
   { code: 'admin', label: 'Admin', description: 'Full access, including settings, logins and integrations. Cannot be restricted.', rank: 1 },
   { code: 'office', label: 'Office', description: 'Sets up people, trucks, customers and jobs; uploads and downloads data.', rank: 20 },
+  { code: 'accounts', label: 'Accounts', description: 'Payroll and invoicing. Same as Office, plus the Accounts reports.', rank: 25 },
   { code: 'supervisor', label: 'Supervisor', description: "Sees all crews' work, approves timesheets, views reports.", rank: 30 },
   { code: 'driver', label: 'Driver', description: 'The basics: shifts, prestart, dockets, faults and their own drafts.', rank: 90 },
   { code: 'undetermined', label: 'Undetermined', description: 'New user waiting for an admin to choose their role. Sees nothing until the role is changed.', rank: 95 },
@@ -53,6 +55,8 @@ export const SYSTEM_ROLES = [
 export function defaultAccess(role: string, f: Feature): Access {
   if (role === 'admin') return 'edit';
   if (role === 'undetermined') return 'hidden';   // waiting for an admin to choose a role
+  if (f.code === 'accounts_reports') return ['accounts', 'office', 'supervisor'].includes(role) ? 'read' : 'hidden';
+  if (role === 'accounts') return defaultAccess('office', f);   // Accounts starts as a copy of Office
   if (['shifts', 'dockets', 'faults'].includes(f.code)) return 'edit';
   if (f.code === 'forms') return ['driver', 'supervisor', 'office'].includes(role) ? 'edit' : 'hidden';
   if (['drafts', 'help'].includes(f.code)) return 'read';

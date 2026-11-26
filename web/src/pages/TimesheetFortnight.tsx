@@ -4,6 +4,7 @@ import { backend, type Row } from '../lib/backend';
 import { addDays, DAY_NAMES, fortnightTotals, periodDays, periodEnd, periodLength, periodStart, SHIFT_BANDS, submitBy, WET, weekday, type PeriodView } from '../lib/forms';
 import { usePeriodSettings } from '../lib/appSettings';
 import { EditOnly, errText, fmt, nowIso, Page, ReadOnlyArea, SignaturePad, todayIso, useReadOnly, useRows, useToast } from '../components/ui';
+import { NORMAL_SHIFT_HOURS } from '../lib/approvals';
 import { useAccess, useApp } from '../state';
 
 type DayKind = 'On shift' | 'R&R' | 'Not working';
@@ -34,7 +35,8 @@ export default function TimesheetFortnight() {
     if (!personId) return;
     const all = await backend().list('timesheet_lines', { person_id: personId });
     const byDay: Record<string, Row> = {};
-    for (const l of all) if (l.work_date >= days[0] && l.work_date <= days[days.length - 1] && !byDay[l.work_date]) byDay[l.work_date] = l;
+    // a clash line (a new driver's hours paired to this person, waiting for the approver) is shown on Approvals, not here
+    for (const l of all) if (!l.clash_with && l.work_date >= days[0] && l.work_date <= days[days.length - 1] && !byDay[l.work_date]) byDay[l.work_date] = l;
     setLines(byDay); setChanged(new Set());
     const subs = (await backend().list('form_submissions', { form_type: 'driver_timesheet', person_id: personId })).filter(s => s.period_start === start);
     setSub(subs[0] ?? { form_type: 'driver_timesheet', person_id: personId, period_start: start, status: 'draft', data: {} });
@@ -182,6 +184,7 @@ function DayTable({ days, lines, trucks, setDay, setKind }: {
             <td><select aria-label={`${d} wet`} disabled={lockedDay} value={l?.wet_type ?? ''} onChange={e => setDay(d, { wet_type: e.target.value || null, wet_hours: e.target.value.startsWith('8') ? 8 : e.target.value.startsWith('6') ? 6 : null })}>
               <option value="">-</option>{WET.map(w => <option key={w}>{w}</option>)}</select></td>
             <td><input aria-label={`${d} hours`} type="number" inputMode="decimal" disabled={lockedDay} value={l?.total_hours ?? ''} onChange={e => setDay(d, { total_hours: e.target.value === '' ? null : Number(e.target.value), hours_edited: true })} />
+              {Number(l?.total_hours) > NORMAL_SHIFT_HOURS && <small className="help over-normal" role="status">Over {NORMAL_SHIFT_HOURS} h: your supervisor will be asked to confirm these hours</small>}
               {l?.over_24h && l.split_note && <small className="help">{l.split_note}</small>}
               {l?.docket_hours != null && <small className="help from-dockets">Dockets {l.docket_hours} h{l.standby_hours ? ` · standby ${l.standby_hours} h` : ''}{l.hours_edited ? ' · your hours kept' : ''}</small>}</td>
             <td><input aria-label={`${d} truck and dog`} type="checkbox" disabled={lockedDay} checked={!!l?.with_dog} onChange={e => setDay(d, { with_dog: e.target.checked })} /></td>

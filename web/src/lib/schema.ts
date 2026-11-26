@@ -32,9 +32,9 @@ export interface TableDef {
   importable?: boolean;
 }
 
-const DEPARTMENTS = ['Completions', 'Workover', 'Drilling', 'Flowback', 'Frac support', 'Rig support', 'Potable and septic', 'Civil', 'Landspray'];
+export const DEPARTMENTS = ['Completions', 'Workover', 'Drilling', 'Flowback', 'Frac support', 'Rig support', 'Potable and septic', 'Civil', 'Landspray'];
 const DAY_NIGHT = ['Day', 'Night'];
-const ROLES = ['undetermined', 'driver', 'supervisor', 'office', 'admin'];
+const ROLES = ['undetermined', 'driver', 'supervisor', 'accounts', 'office', 'admin'];
 
 export const TABLES: Record<TableName, TableDef> = {
   app_logins: {

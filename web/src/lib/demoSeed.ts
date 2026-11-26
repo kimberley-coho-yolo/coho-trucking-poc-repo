@@ -31,6 +31,7 @@ export function demoSeed(): Record<string, Row[]> {
       { id: 'l4', label: 'Crew phone 1', phone: '0400 000 001', role: 'driver', active: true },
       { id: 'l5', label: 'Crew phone 2', phone: '0400 000 002', role: 'driver', active: true },
       { id: 'l6', label: 'Drilling supervisor', email: 'drilling.sup@demo.local', role: 'supervisor', departments: ['Drilling'], active: true },
+      { id: 'l7', label: 'Demo accounts', email: 'accounts@demo.local', role: 'accounts', active: true },
     ],
     people: [
       { id: P1, full_name: 'Alex Driver', crew: 'Shift 1 Day', department: 'Completions', is_driver: true, active: true },

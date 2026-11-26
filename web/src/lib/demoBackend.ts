@@ -4,6 +4,7 @@ import type { Backend, Filter, Role, Row, Session, WatchSpec } from './backend';
 import { clean, uuid } from './backend';
 import type { TableName } from './schema';
 import { normPhone, samePhone } from './phone';
+import { cleanFullName, surname } from './newDrivers';
 import { demoSeed, demoSettings } from './demoSeed';
 import { daysCovered, docketEntries, docketPeopleDays, planDay } from './timesheetSync';
 import { best, canEdit, canRead, effectiveAccess, FEATURES, TABLE_FEATURE, type Perms } from './permissions';
@@ -165,6 +166,98 @@ export class DemoBackend implements Backend {
     this.t('app_logins').push({ id: uuid(), label: 'First admin', email: this.session?.email, phone: this.session?.phone, role: 'admin', active: true });
     this.persist(); return 'You are now the admin.';
   }
+  // ---------- new drivers (same rules as the database's add/approve/pair_pending_driver) ----------
+  private loginName() {
+    const s = this.session; if (!s) return null;
+    const l = this.t('app_logins').find(x => x.active !== false && ((x.email && s.email && x.email.toLowerCase() === s.email.toLowerCase()) || (x.phone && s.phone && samePhone(x.phone, s.phone))));
+    return l?.label ?? l?.email ?? s.email ?? s.phone ?? null;
+  }
+  async addPendingDriver(fullName: string) {
+    if (!this.role() || this.role() === 'undetermined') throw new Error('Sign in first.');
+    const phone = this.myPhones()[0];
+    if (!phone) throw new Error('Only a crew phone can add a new driver.');
+    const name = cleanFullName(fullName);
+    if (!name) throw new Error('Type your first name and surname.');
+    const people = this.t('people');
+    if (people.some(p => p.full_name?.toLowerCase() === name.toLowerCase() && p.active !== false && !p.pending)) throw new Error(`${name} is already a driver. Tap "I am a cover driver" and pick your name.`);
+    const again = people.find(p => p.pending && p.added_phone_id === phone && p.full_name?.toLowerCase() === name.toLowerCase());
+    if (again) return { ...again };
+    const now = new Date().toISOString();
+    const person = { id: uuid(), full_name: name, is_driver: true, active: true, pending: true, added_phone_id: phone, added_at: now, added_by: this.session?.userId,
+      notes: 'Added on a crew phone. Waiting for a supervisor to check.', created_at: now, created_by: this.session?.userId };
+    people.push(person);
+    this.t('phone_assignments').push({ id: uuid(), work_phone_id: phone, person_id: person.id, created_at: now });
+    this.audit('people', person.id, 'INSERT', null, person);
+    this.persist(); this.emit('people', person);
+    return { ...person };
+  }
+  private pendingReady(personId: string) {
+    if (!canEdit(this.perms(), 'approvals')) throw new Error('Only people who approve timesheets can check a new driver.');
+    const v = this.t('people').find(p => p.id === personId);
+    if (!v?.pending) throw new Error('This driver is not waiting to be checked.');
+    if (!this.t('timesheet_lines').some(l => l.person_id === personId && l.status === 'submitted')) throw new Error(`${v.full_name} has not sent a timesheet yet. Check them once they send it.`);
+    return v;
+  }
+  async approvePendingDriver(personId: string) {
+    const v = this.pendingReady(personId);
+    Object.assign(v, { pending: false, review_outcome: 'approved', reviewed_by: this.session?.userId, reviewed_by_name: this.loginName(), reviewed_at: new Date().toISOString(),
+      notes: 'Added on a crew phone. Approved as a new driver.' });
+    this.audit('people', v.id, 'UPDATE', null, v);
+    this.persist(); this.emit('people', v);
+    return { ...v };
+  }
+  async pairPendingDriver(personId: string, targetId: string) {
+    const v = this.pendingReady(personId);
+    const t = this.t('people').find(p => p.id === targetId);
+    if (!t || t.pending || t.active === false || t.id === personId) throw new Error('Pick an active driver to pair the hours to.');
+    if (surname(t.full_name) !== surname(v.full_name)) throw new Error(`Hours can only be paired to someone with the same surname as ${v.full_name}.`);
+    const lines = this.t('timesheet_lines');
+    if (lines.some(l => l.person_id === personId && l.status === 'approved')) throw new Error(`Some of ${v.full_name}'s days are already approved. Ask an admin to reopen them first.`);
+    let days = 0; const touched = new Set<string>();
+    // a day the person already has is kept as a clash for the approver to resolve
+    for (const l of lines.filter(x => x.person_id === personId)) {
+      const own = lines.find(x => x.person_id === targetId && x.work_date === l.work_date && x.id !== l.id && !x.clash_with);
+      Object.assign(l, { person_id: targetId, driver_comment: `${l.driver_comment ?? ''} (Sent as ${v.full_name})`.trim(), clash_with: own?.id ?? null, clash_from: own ? v.full_name : null });
+      days++; if (l.work_date) touched.add(l.work_date);
+    }
+    for (const f of this.t('form_submissions').filter(x => x.person_id === personId && x.status !== 'approved'))
+      if (!this.t('form_submissions').some(x => x.person_id === targetId && x.form_type === f.form_type && x.period_start === f.period_start)) f.person_id = targetId;
+    for (const sh of this.t('shifts').filter(x => x.driver_id === personId)) { sh.driver_id = targetId; if (sh.shift_date) touched.add(sh.shift_date); }
+    for (const d of this.t('dockets')) {
+      const x = d.extras ?? {};
+      if (!(d.assigned_person_ids ?? []).includes(personId) && x.s1_operator_id !== personId && x.s2_operator_id !== personId) continue;
+      d.assigned_person_ids = (d.assigned_person_ids ?? []).map((id: string) => (id === personId ? targetId : id));
+      d.extras = { ...x, ...(x.s1_operator_id === personId ? { s1_operator_id: targetId } : {}), ...(x.s2_operator_id === personId ? { s2_operator_id: targetId } : {}) };
+      d.version = (d.version ?? 1) + 1;
+      for (const pd of docketPeopleDays(d, this.t('shifts').find(s2 => s2.id === d.shift_id))) touched.add(pd.day);
+    }
+    const links = this.t('phone_assignments');
+    for (const a of links.filter(x => x.person_id === personId)) {
+      if (!links.some(x => x.work_phone_id === a.work_phone_id && x.person_id === targetId)) links.push({ id: uuid(), work_phone_id: a.work_phone_id, person_id: targetId });
+      links.splice(links.indexOf(a), 1);
+    }
+    Object.assign(v, { pending: false, active: false, review_outcome: 'paired', paired_to: targetId, reviewed_by: this.session?.userId, reviewed_by_name: this.loginName(),
+      reviewed_at: new Date().toISOString(), notes: `Added on a crew phone. Hours paired to ${t.full_name}.` });
+    for (const day of touched) { this.refreshDay(targetId, day); this.refreshDay(personId, day); }
+    this.audit('people', v.id, 'UPDATE', null, v);
+    this.persist(); this.emit('people', v);
+    return days;
+  }
+  async resolveTimesheetClash(keepId: string, removeId: string, amend: { total_hours?: number | null; work_diary_page?: string | null; comment?: string | null }) {
+    if (!canEdit(this.perms(), 'approvals')) throw new Error('Only people who approve timesheets can resolve a clash.');
+    const lines = this.t('timesheet_lines');
+    const k = lines.find(l => l.id === keepId); const r = lines.find(l => l.id === removeId);
+    if (!k || !r || !(k.clash_with === r.id || r.clash_with === k.id)) throw new Error('These two lines are not a clash.');
+    if (k.status === 'approved' || r.status === 'approved') throw new Error('One of these lines is already approved. Ask an admin to reopen it first.');
+    lines.splice(lines.indexOf(r), 1);
+    const h = amend.total_hours;
+    Object.assign(k, { clash_with: null, clash_from: null, updated_at: new Date().toISOString(),
+      ...(h != null ? { total_hours: h, travel_hours: Math.round(Math.max(h - (Number(k.docket_hours) || 0), 0) * 100) / 100, hours_edited: true } : {}),
+      ...(amend.work_diary_page ? { work_diary_page: amend.work_diary_page } : {}), ...(amend.comment ? { supervisor_comment: amend.comment } : {}) });
+    this.audit('timesheet_lines', r.id, 'DELETE', r, null); this.audit('timesheet_lines', k.id, 'UPDATE', null, k);
+    this.persist(); this.emit('timesheet_lines', k);
+    return { ...k };
+  }
   async peopleForMyPhone() {
     const phone = this.session?.phone;
     const phones = this.t('work_phones').filter(w => samePhone(w.phone, phone)).map(w => w.id);
@@ -236,7 +329,7 @@ export class DemoBackend implements Backend {
     const shiftOf = (id?: string | null) => (id ? this.t('shifts').find(x => x.id === id) : undefined);
     const entries = this.t('dockets').flatMap(d => docketEntries(d, shiftOf(d.shift_id))).filter(e => e.person_id === person && e.day === day);
     const lines = this.t('timesheet_lines');
-    const existing = lines.filter(l => l.person_id === person && l.work_date === day).sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)))[0];
+    const existing = lines.filter(l => l.person_id === person && l.work_date === day && !l.clash_with).sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)))[0];   // clash lines are left for the approver
     const plan = planDay(entries, existing, id => shiftOf(id), id => this.t('locations').find(l => l.id === id)?.name, person, day);
     if (plan === 'delete') { lines.splice(lines.indexOf(existing!), 1); this.emit('timesheet_lines', existing!); return; }
     if (!plan) return;
@@ -301,6 +394,10 @@ export class DemoBackend implements Backend {
     const saved: Row = existing
       ? { ...existing, ...body, updated_at: now }
       : { id: uuid(), created_at: now, created_by: this.session?.userId, ...body };
+    if (table === 'timesheet_lines' && saved.status === 'approved' && existing?.status !== 'approved' && this.t('people').find(p => p.id === saved.person_id)?.pending)
+      throw new Error('This is a new driver waiting to be checked. Approve them as a new driver, or pair their hours to an existing driver, first.');
+    if (table === 'timesheet_lines' && saved.status === 'approved' && existing?.status !== 'approved' && (saved.clash_with || this.t('timesheet_lines').some(l => l.clash_with === saved.id)))
+      throw new Error('This day has two timesheet lines (a new driver\'s hours were paired to this driver). Resolve the clash first.');
     if (table === 'form_submissions') this.formGuard(existing, body, saved);
     if (table === 'dockets') this.docketWorkflow(existing, saved);
     if (table === 'dockets') {

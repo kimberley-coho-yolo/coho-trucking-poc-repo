@@ -194,6 +194,17 @@ export class OfflineBackend implements Backend {
   peopleForMyPhone() { return this.cached('people', () => this.inner.peopleForMyPhone()) as Promise<Row[]>; }
   claimFirstAdmin() { return this.inner.claimFirstAdmin(); }
   async kickTexts() { if (this.isOnline()) await this.inner.kickTexts?.().catch(() => null); }
+  // new drivers need signal: they change several tables at once on the server
+  private needSignal() { if (!this.isOnline()) throw new Error('No signal. Adding or checking a new driver needs signal.'); }
+  async addPendingDriver(fullName: string) {
+    this.needSignal(); const p = await this.inner.addPendingDriver!(fullName);
+    delete (this.cache as Record<string, unknown>).people; this.persist(); return p;
+  }
+  async approvePendingDriver(personId: string) { this.needSignal(); return this.inner.approvePendingDriver!(personId); }
+  async pairPendingDriver(personId: string, targetId: string) { this.needSignal(); return this.inner.pairPendingDriver!(personId, targetId); }
+  async resolveTimesheetClash(keepId: string, removeId: string, amend: { total_hours?: number | null; work_diary_page?: string | null; comment?: string | null }) {
+    this.needSignal(); return this.inner.resolveTimesheetClash!(keepId, removeId, amend);
+  }
   async myReviewDepartments() {
     const deps = await this.cached('deps' as any, async () => ((await this.inner.myReviewDepartments?.()) ?? []) as any);
     return (deps ?? []) as string[];

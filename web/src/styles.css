@@ -218,3 +218,24 @@ tr.unassigned th, tr.unassigned td { background: #fffdf5; }
 .roster-sel { position: sticky; top: 0; z-index: 2; }
 .job small.err { color: var(--coho-red); }
 .review-box { border-color: var(--coho-red); }
+/* Accounts reports */
+.accounts-totals tr.on td { background: var(--light); }
+.accounts-totals .pill { margin: 0 4px 4px 0; display:inline-block; }
+.accounts-compare tr.differs td { background:#fff6f6; }
+.accounts-compare .docket-link { margin-right: 8px; }
+/* Roster search, upload and downloads */
+.roster-tools { display:flex; flex-wrap:wrap; gap: 8px; align-items:flex-end; margin: 8px 0; }
+.roster-tools .field { min-width: 220px; }
+.roster-chip.match { box-shadow: 0 0 0 2px var(--coho-red); }
+.roster-upload table td.err { color: var(--coho-red); font-weight:700; }
+/* New drivers added on a crew phone */
+.new-drivers { border:1px solid var(--coho-red); border-radius: 8px; padding: 8px 12px; margin: 8px 0 12px; background:#fff8f8; }
+.new-drivers h2 { margin-top: 4px; }
+.new-driver { border-top:1px solid var(--line); padding: 8px 0; }
+.pill.new-driver-flag { background:#fde1e3; box-shadow: inset 0 0 0 1px var(--coho-red); font-weight:700; }
+.note.new-driver-flag { border-left: 4px solid var(--coho-red); }
+.clash-cards { display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; margin: 6px 0; }
+.clash-card { display:flex; flex-direction:column; gap: 2px; border:1px solid var(--line); border-radius: 8px; padding: 8px; cursor:pointer; background:#fff; }
+.clash-card.on { border-color: var(--coho-black); box-shadow: inset 0 0 0 1px var(--coho-black); }
+.help.over-normal { color: var(--coho-red); font-weight: 700; }
+.pill.over-normal { background:#fff3cd; color:#7a5b00; box-shadow: inset 0 0 0 1px #c99a00; font-weight:700; }

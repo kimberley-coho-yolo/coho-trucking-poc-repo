@@ -27,7 +27,7 @@ export default function Dockets() {
     return () => { stop(); document.removeEventListener('visibilitychange', onBack); };
   }, [load]);
 
-  const names = (ids?: string[]) => (ids ?? []).map(id => people.find(p => p.id === id)?.full_name ?? '?').join(', ');
+  const names = (ids?: string[]) => (ids ?? []).map(id => { const p = people.find(x => x.id === id); return (p?.full_name ?? '?') + (p?.pending ? ' (new driver: check)' : ''); }).join(', ');
   const shown = useMemo(() => all.filter(d => {
     if (f.form && (d.form_type ?? 'general') !== f.form) return false;
     if (f.status === 'not closed' && d.status === 'closed') return false;

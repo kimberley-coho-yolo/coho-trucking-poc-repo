@@ -8,7 +8,7 @@ import { PhoneAndDrivers } from './assign';
 
 /** Tick the drivers who should see this docket on their phone. */
 export function PeoplePicker({ value, onChange, disabled }: { value: string[]; onChange: (ids: string[]) => void; disabled?: boolean }) {
-  const people = useRows('people').filter(p => p.active !== false || value.includes(p.id));
+  const people = useRows('people').filter(p => (p.active !== false && !p.pending) || value.includes(p.id));   // new drivers waiting to be checked are not offered
   const [q, setQ] = useState('');
   const shown = people.filter(p => !q || String(p.full_name ?? '').toLowerCase().includes(q.toLowerCase()) || value.includes(p.id));
   if (disabled) return (

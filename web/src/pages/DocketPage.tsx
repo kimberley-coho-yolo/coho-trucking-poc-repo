@@ -4,7 +4,8 @@ import { backend, type Row } from '../lib/backend';
 import { TABLES } from '../lib/schema';
 import { applyRowRules, COMMON_FIELDS, formFor, FORMS, fromView, shiftFields, shiftKey, sortRows, TIME_FIELDS, toView } from '../lib/docketForms';
 import { DEPARTMENT_EXTRAS } from '../lib/extras';
-import { EditOnly, errText, FieldGrid, FieldInput, fmt, nowIso, Page, SignaturePad, useReadOnly, useToast } from '../components/ui';
+import { EditOnly, errText, FieldGrid, FieldInput, fmt, nowIso, Page, SignaturePad, useReadOnly, useRows, useToast } from '../components/ui';
+import { pendingOnDocket } from '../lib/newDrivers';
 import { ClonePanel, RowsBlock } from '../components/docket';
 import { AssignmentBox } from '../components/assign';
 import { useAccess, useApp } from '../state';
@@ -23,6 +24,7 @@ export default function DocketPage() {
   const office = can.edit('all_work');                    // office, supervisors, admin: assign drivers, change form, clone
 
   const [d, setD] = useState<Row | null>(null);           // the docket as one flat object (columns + extras)
+  const allPeople = useRows('people');
   const [rows, setRows] = useState<Row[]>([]);
   const [row, setRow] = useState<Row | null>(null);       // row being edited
   const [sign, setSign] = useState<Row>({});
@@ -74,6 +76,7 @@ export default function DocketPage() {
     backend().list('shifts', { driver_id: person.id }).then(s => setMyShift(s.find(x => x.status === 'open' || x.status === 'draft') ?? null)).catch(() => null);
   }, [person, d?.shift_id]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const newDrivers = d ? pendingOnDocket({ ...d, extras: d }, allPeople) : [];   // d is flat: shift operators sit at the top level
   if (missing) return <Page title="Docket"><p>This docket was deleted, or it is not assigned to you.</p><Link className="button" to="/">Back to home</Link></Page>;
   if (!d) return <Page title="Docket"><p>Loading...</p></Page>;
   const form = formFor(d.form_type);
@@ -151,6 +154,7 @@ export default function DocketPage() {
       {!d.shift_id && myShift && !readOnly && <div className="note">This docket is not on a shift yet.
         <button className="small" onClick={() => save({ extra: { shift_id: myShift.id, status: 'open', start_at: d.start_at ?? nowIso() } }).then(() => loadAll())}>Add it to my open shift</button></div>}
 
+      {newDrivers.length > 0 && <div className="note new-driver-flag" role="status"><b>New driver: please check.</b> {newDrivers.map(p => p.full_name).join(', ')} {newDrivers.length === 1 ? 'was' : 'were'} added on a crew phone and {newDrivers.length === 1 ? 'is' : 'are'} waiting for a timesheet approver to approve or pair {newDrivers.length === 1 ? 'the name' : 'the names'} (Approvals).</div>}
       {d.review_status === 'returned' && <div className="note" role="alert"><b>Returned by the supervisor{d.reviewed_at ? ` (${fmt(d.reviewed_at)})` : ''}:</b> {d.review_comment || 'please check and close it again.'}</div>}
       {d.review_status === 'reviewed' && <div className="note" role="status"><b>Reviewed {fmt(d.reviewed_at)}.</b> This docket is locked{can.edit('docket_review') ? ' for drivers' : ''}.{d.review_comment ? ` Comment: ${d.review_comment}` : ''}</div>}
       {d.review_status === 'to_review' && can.edit('docket_review') && <fieldset className="review-box"><legend>Review this completed docket</legend>

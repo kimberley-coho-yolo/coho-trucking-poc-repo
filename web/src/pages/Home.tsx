@@ -53,6 +53,7 @@ export default function Home() {
         {(can.read('forms') || can.read('approvals')) && <Link className="card" to="/forms">Forms<small>Timesheet, expenses, land and fire risk checklist</small></Link>}
         {can.edit('faults') && <Link className="card" to="/fault/new">Report a fault<small>Goes to supervisor and HSE</small></Link>}
         {can.read('approvals') && <Link className="card" to="/approvals">Approvals<small>Timesheets waiting</small></Link>}
+        {can.read('accounts_reports') && <Link className="card" to="/accounts">Accounts<small>Overdue timesheets, docket totals, timesheets vs dockets</small></Link>}
         {can.read('reports') && <Link className="card" to="/reports">Reports<small>Per customer, rig, truck, travel</small></Link>}
         {ADMIN_FEATURES.some(can.read) && <Link className="card" to="/admin">Admin<small>People, phones, logins, lists</small></Link>}
         {DATA_FEATURES.some(can.read) && <Link className="card" to="/data">Data<small>Integrations, upload, export, query</small></Link>}

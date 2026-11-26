@@ -40,3 +40,14 @@ describe('approval date ranges', () => {
     expect(inRange('2026-10-31', rangeFor('month', '2026-11-27', s, 'week'))).toBe(false);
   });
 });
+
+describe('days over 12.5 hours', () => {
+  it('flags only days recorded at more than 12.5 hours, and does not change them', async () => {
+    const { overNormal } = await import('./approvals');
+    expect(overNormal({ total_hours: 12 })).toBe(false);
+    expect(overNormal({ total_hours: 12.5 })).toBe(false);   // a normal day signed in 05:45 to 18:15
+    expect(overNormal({ total_hours: 12.75 })).toBe(true);
+    expect(overNormal({ total_hours: '18.25' })).toBe(true);
+    expect(overNormal({ total_hours: null })).toBe(false);
+  });
+});

@@ -96,6 +96,27 @@ export class SupabaseBackend implements Backend {
   async kickTexts() {
     await this.sb.functions.invoke('docket-sms', { body: {} }).catch(() => null);
   }
+  async addPendingDriver(fullName: string) {
+    const { data, error } = await this.sb.rpc('add_pending_driver', { p_full_name: fullName });
+    if (error) throw error;
+    return data as Row;
+  }
+  async approvePendingDriver(personId: string) {
+    const { data, error } = await this.sb.rpc('approve_pending_driver', { p_person: personId });
+    if (error) throw error;
+    return data as Row;
+  }
+  async pairPendingDriver(personId: string, targetId: string) {
+    const { data, error } = await this.sb.rpc('pair_pending_driver', { p_person: personId, p_target: targetId });
+    if (error) throw error;
+    return Number(data) || 0;
+  }
+  async resolveTimesheetClash(keepId: string, removeId: string, amend: { total_hours?: number | null; work_diary_page?: string | null; comment?: string | null }) {
+    const { data, error } = await this.sb.rpc('resolve_timesheet_clash', { p_keep: keepId, p_remove: removeId, p_total_hours: amend.total_hours ?? null,
+      p_work_diary_page: amend.work_diary_page ?? null, p_comment: amend.comment ?? null });
+    if (error) throw error;
+    return data as Row;
+  }
   async myReviewDepartments() {
     const { data, error } = await this.sb.rpc('my_review_departments');
     if (error) throw error;
