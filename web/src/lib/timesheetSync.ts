@@ -19,7 +19,7 @@ export const qldDate = (iso?: string | null) => iso ? new Date(new Date(iso).get
 const uuidish = (v: unknown) => (typeof v === 'string' && v.length > 0 ? v : null);
 const num = (v: unknown) => (v === null || v === undefined || v === '' || Number.isNaN(Number(v)) ? null : Number(v));
 
-export interface Entry { person_id: string; day: string; hours: number | null; standby: number | null; band: string | null; truck_id: string | null; location_id: string | null; with_dog: boolean | null; shift_id: string | null; split?: boolean; note?: string | null }
+export interface Entry { person_id: string; day: string; hours: number | null; standby: number | null; band: string | null; truck_id: string | null; location_id: string | null; with_dog: boolean | null; shift_id: string | null; split?: boolean; note?: string | null; two_shift?: boolean }
 
 // ---------- shifts over 24 hours: split at midnight (Queensland, UTC+10, no daylight saving) ----------
 const QLD = 10 * 3.6e6;
@@ -64,7 +64,7 @@ export function docketEntries(d: Row, shift?: Row | null): Entry[] {
       const base = {
         person_id: x[`s${n}_operator_id`], band,
         truck_id: uuidish(x[`s${n}_truck_id`]) ?? d.truck_id ?? null, location_id: d.location_id ?? null,
-        with_dog: x[`s${n}_truck_config`] === 'Dog' ? true : null, shift_id: d.shift_id ?? null,
+        with_dog: x[`s${n}_truck_config`] === 'Dog' ? true : null, shift_id: d.shift_id ?? null, two_shift: true,
       };
       if (band === NIGHT) return [{ ...base, day, hours: 6, standby: num(x[`s${n}_standby_hours`]) }, { ...base, day: nextDay(day), hours: 6, standby: null }];
       return [{ ...base, day, hours: band ? 12 : null, standby: num(x[`s${n}_standby_hours`]) }];
@@ -113,15 +113,15 @@ const sumOrNull = (xs: (number | null)[]) => xs.some(v => v !== null) ? xs.reduc
  * What the line for one driver and day should become.
  * Returns the row to insert or update, 'delete' to remove an untouched line we made, or null to leave it alone.
  */
-export function planDay(entries: Entry[], existing: Row | undefined, shiftOf: (id: string) => Row | undefined, locationName: (id: string) => string | undefined,
-  person_id: string, day: string, carriedShifts: Row[] = []): Row | 'delete' | null {
-  // the shifts worked on this day: those its dockets belong to, plus any shift (with dockets) that ran past midnight into it
-  const shiftIds = [...new Set(entries.map(e => e.shift_id).filter(Boolean) as string[])];
-  const shifts = [...shiftIds.map(id => shiftOf(id)).filter(Boolean) as Row[],
-    ...carriedShifts.filter(s => !shiftIds.includes(s.id) && (isLong(s.sign_in_at, s.sign_out_at, s.over_24h) || crossesMidnight(s.sign_in_at, s.sign_out_at)) && hoursOnDay(s.sign_in_at, s.sign_out_at, day) > 0)];
-  const spanOf = (s: Row) => isLong(s.sign_in_at, s.sign_out_at, s.over_24h) || crossesMidnight(s.sign_in_at, s.sign_out_at) ? hoursOnDay(s.sign_in_at, s.sign_out_at, day)
-    : s.sign_in_at && s.sign_out_at && new Date(s.sign_out_at) > new Date(s.sign_in_at) ? hoursBetween(s.sign_in_at, s.sign_out_at) : null;
-  const span = sumOrNull(shifts.map(spanOf));
+export function planDay(entries: Entry[], existing: Row | undefined, _shiftOf: (id: string) => Row | undefined, locationName: (id: string) => string | undefined,
+  person_id: string, day: string, ownShifts: Row[] = [], shiftHasDockets: (shiftId: string) => boolean = () => true): Row | 'delete' | null {
+  // The day's total is the person's OWN shift time (shifts they signed, split at midnight). On a two-shift daily report the docket
+  // sits on the day operator's shift, and that time must never be added to the night operator. Own shifts count when the person has
+  // dockets on this day, or when the shift itself has dockets (the end of last night's shift carried past midnight).
+  const shifts = ownShifts.filter(s => s.sign_in_at && s.sign_out_at && new Date(s.sign_out_at) > new Date(s.sign_in_at)
+    && hoursOnDay(s.sign_in_at, s.sign_out_at, day) > 0 && (entries.length > 0 || shiftHasDockets(s.id)))
+    .sort((a, b) => String(a.sign_in_at).localeCompare(String(b.sign_in_at)));
+  const span = sumOrNull(shifts.map(s => hoursOnDay(s.sign_in_at, s.sign_out_at, day)));
   if (!entries.length && !span) {
     return existing && existing.source === 'dockets' && existing.status === 'draft' && !existing.hours_edited && !existing.work_diary_page ? 'delete' : null;
   }
@@ -130,14 +130,15 @@ export function planDay(entries: Entry[], existing: Row | undefined, shiftOf: (i
   const first = <K extends keyof Entry>(k: K) => (entries.find(e => e[k] !== null && e[k] !== undefined)?.[k] ?? null) as Entry[K] | null;
   // the day's band is the band of the entry with the most hours (a day can hold the end of last night and a new shift)
   const band = [...entries].filter(e => e.band).sort((a, b) => (b.hours ?? -1) - (a.hours ?? -1))[0]?.band ?? null;
-  const shiftId = first('shift_id') ?? shifts[0]?.id ?? null;
+  const shiftId = shifts[0]?.id ?? first('shift_id') ?? null;   // the line links to the person's own shift first
   const dog = entries.some(e => e.with_dog === true) ? true : null;
   const locs = [...new Set(entries.map(e => (e.location_id ? locationName(e.location_id) : undefined)).filter(Boolean))].sort().join(', ') || null;
   const longShift = shifts.find(s => isLong(s.sign_in_at, s.sign_out_at, s.over_24h));
   const split = entries.some(e => e.split) || !!longShift;
   const note = entries.find(e => e.note)?.note ?? (longShift ? longNote(longShift.sign_in_at, longShift.sign_out_at) : null);
   // dockets not on any shift add their own hours to the shift time
-  const tot = span !== null ? span + (sumOrNull(entries.filter(e => !e.shift_id).map(e => e.hours)) ?? 0) : hrs;
+  // dockets not on any shift add their own hours (not two-shift reports: their operators sign their own shifts)
+  const tot = span ? span + (sumOrNull(entries.filter(e => !e.shift_id && !e.two_shift).map(e => e.hours)) ?? 0) : hrs;
   const travel = r2(Math.max((tot ?? 0) - (hrs ?? 0), 0));
   if (!existing) {
     return { person_id, work_date: day, status: 'draft', on_shift: true, rr: false, shift_id: shiftId, docket_hours: r2(hrs), standby_hours: r2(sb),

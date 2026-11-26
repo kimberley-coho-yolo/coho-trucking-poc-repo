@@ -67,3 +67,26 @@ select pg_temp.check((pg_temp.line('44444444-0000-0000-0000-000000000003', '2026
                  and (pg_temp.line('44444444-0000-0000-0000-000000000003', '2026-11-30')).total_hours = 6, 'two-shift report night band: 6 + 6');
 delete from public.dockets where id = '99999999-0000-0000-0000-000000000012';
 select pg_temp.check((select count(*) from public.timesheet_lines where person_id = '44444444-0000-0000-0000-000000000003' and work_date in ('2026-11-29', '2026-11-30')) = 0, 'removing it removes both days');
+
+-- Two-shift daily reports where each operator signs their own shift (as in the trial week). The docket sits on the DAY operator's
+-- shift; the night operator must get only their own shift time on each day, never the day operator's (bug fixed 26/11/2026).
+-- Sam (002) works days, Jo (003) works nights, reports for 2 and 3 Dec.
+delete from public.timesheet_lines where person_id in ('44444444-0000-0000-0000-000000000002', '44444444-0000-0000-0000-000000000003') and work_date between '2026-12-01' and '2026-12-05';
+insert into public.shifts(id, status, shift_date, day_night, driver_id, sign_in_at, sign_out_at) values
+  ('99999999-0000-0000-0000-000000000021', 'submitted', '2026-12-02', 'Day',   '44444444-0000-0000-0000-000000000002', '2026-12-02 05:45+10', '2026-12-02 18:15+10'),
+  ('99999999-0000-0000-0000-000000000022', 'submitted', '2026-12-03', 'Day',   '44444444-0000-0000-0000-000000000002', '2026-12-03 05:45+10', '2026-12-03 18:15+10'),
+  ('99999999-0000-0000-0000-000000000023', 'submitted', '2026-12-02', 'Night', '44444444-0000-0000-0000-000000000003', '2026-12-02 17:45+10', '2026-12-03 06:15+10'),
+  ('99999999-0000-0000-0000-000000000024', 'submitted', '2026-12-03', 'Night', '44444444-0000-0000-0000-000000000003', '2026-12-03 17:45+10', '2026-12-04 06:15+10');
+insert into public.dockets(id, form_type, status, work_date, shift_id, start_at, end_at, extras) values
+  ('99999999-0000-0000-0000-000000000031', 'daily_report_drilling', 'closed', '2026-12-02', '99999999-0000-0000-0000-000000000021', '2026-12-02 06:00+10', '2026-12-03 06:00+10',
+   jsonb_build_object('s1_operator_id', '44444444-0000-0000-0000-000000000002', 's1_band', '06:00 to 18:00', 's2_operator_id', '44444444-0000-0000-0000-000000000003', 's2_band', '18:00 to 06:00')),
+  ('99999999-0000-0000-0000-000000000032', 'daily_report_drilling', 'closed', '2026-12-03', '99999999-0000-0000-0000-000000000022', '2026-12-03 06:00+10', '2026-12-04 06:00+10',
+   jsonb_build_object('s1_operator_id', '44444444-0000-0000-0000-000000000002', 's1_band', '06:00 to 18:00', 's2_operator_id', '44444444-0000-0000-0000-000000000003', 's2_band', '18:00 to 06:00'));
+select pg_temp.check((pg_temp.line('44444444-0000-0000-0000-000000000003', '2026-12-03')).total_hours = 12.5
+                 and (pg_temp.line('44444444-0000-0000-0000-000000000003', '2026-12-03')).docket_hours = 12,
+  'night operator on a two-shift report: own shift time only (6.25 + 6.25), not the day operator''s');
+select pg_temp.check((pg_temp.line('44444444-0000-0000-0000-000000000003', '2026-12-02')).total_hours = 6.25, 'first night: 6.25 h before midnight');
+select pg_temp.check((pg_temp.line('44444444-0000-0000-0000-000000000003', '2026-12-04')).total_hours = 6.25, 'last morning: 6.25 h after midnight');
+select pg_temp.check((pg_temp.line('44444444-0000-0000-0000-000000000002', '2026-12-03')).total_hours = 12.5, 'day operator: own 12.5 h shift');
+delete from public.dockets where id in ('99999999-0000-0000-0000-000000000031', '99999999-0000-0000-0000-000000000032');
+delete from public.shifts where id::text like '99999999-0000-0000-0000-00000000002%';

@@ -331,8 +331,8 @@ export class DemoBackend implements Backend {
     const lines = this.t('timesheet_lines');
     const existing = lines.filter(l => l.person_id === person && l.work_date === day && !l.clash_with).sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)))[0];   // clash lines are left for the approver
     const dockets = this.t('dockets');
-    const carried = this.t('shifts').filter(x => x.driver_id === person && dockets.some(d => d.shift_id === x.id));   // shifts that may run past midnight into this day
-    const plan = planDay(entries, existing, id => shiftOf(id), id => this.t('locations').find(l => l.id === id)?.name, person, day, carried);
+    const own = this.t('shifts').filter(x => x.driver_id === person);   // only shifts this person signed count towards their day
+    const plan = planDay(entries, existing, id => shiftOf(id), id => this.t('locations').find(l => l.id === id)?.name, person, day, own, id => dockets.some(d => d.shift_id === id));
     if (plan === 'delete') { lines.splice(lines.indexOf(existing!), 1); this.emit('timesheet_lines', existing!); return; }
     if (!plan) return;
     const now = new Date().toISOString();

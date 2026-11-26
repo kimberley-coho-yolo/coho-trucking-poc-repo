@@ -50,6 +50,27 @@ describe('demo: closing a docket updates the driver timesheet', () => {
   });
 });
 
+describe('two-shift daily reports (bug fixed 26/11/2026)', () => {
+  it('the night operator gets only their own shift time, never the day operator\'s', () => {
+    // reports for 2 and 3 Dec sit on the DAY operator's shifts (d1, d2); the night operator (n) signs their own night shifts
+    const shifts = [
+      { id: 'd1', driver_id: 'day', sign_in_at: '2026-12-01T19:45:00Z', sign_out_at: '2026-12-02T08:15:00Z' },
+      { id: 'd2', driver_id: 'day', sign_in_at: '2026-12-02T19:45:00Z', sign_out_at: '2026-12-03T08:15:00Z' },
+      { id: 'n1', driver_id: 'n', sign_in_at: '2026-12-02T07:45:00Z', sign_out_at: '2026-12-02T20:15:00Z' },   // 2 Dec 17:45 to 3 Dec 06:15
+      { id: 'n2', driver_id: 'n', sign_in_at: '2026-12-03T07:45:00Z', sign_out_at: '2026-12-03T20:15:00Z' },
+    ];
+    const report = (id: string, day: string, shift: string) => ({ id, status: 'closed', work_date: day, shift_id: shift,
+      extras: { s1_operator_id: 'day', s1_band: '06:00 to 18:00', s2_operator_id: 'n', s2_band: '18:00 to 06:00' } });
+    const ds = [report('r1', '2026-12-02', 'd1'), report('r2', '2026-12-03', 'd2')];
+    const shiftOf = (id: string) => shifts.find(s => s.id === id);
+    const day3 = ds.flatMap(d => docketEntries(d, shiftOf(d.shift_id))).filter(e => e.person_id === 'n' && e.day === '2026-12-03');
+    const own = shifts.filter(s => s.driver_id === 'n');
+    expect(planDay(day3, undefined, shiftOf, () => undefined, 'n', '2026-12-03', own)).toMatchObject({ docket_hours: 12, total_hours: 12.5 });   // 6.25 + 6.25
+    const dayOp = ds.flatMap(d => docketEntries(d, shiftOf(d.shift_id))).filter(e => e.person_id === 'day' && e.day === '2026-12-03');
+    expect(planDay(dayOp, undefined, shiftOf, () => undefined, 'day', '2026-12-03', shifts.filter(s => s.driver_id === 'day'))).toMatchObject({ total_hours: 12.5 });
+  });
+});
+
 describe('shifts over 24 hours', () => {
   it('splits a 30 hour shift at midnight and flags both days', () => {
     const es = docketEntries({ status: 'closed', start_at: '2026-11-22T20:00:00Z', end_at: '2026-11-24T02:00:00Z', assigned_person_ids: ['p1'] });   // Mon 06:00 to Tue 12:00 QLD
