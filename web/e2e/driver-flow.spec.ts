@@ -278,6 +278,11 @@ test('a timesheet not sent is flagged to the driver; supervisors pick week, fort
   await row.locator('input[type=number]').fill('10');
   await page.click('.savebar >> text=Save');
   await expect(page.locator('.toast')).toContainText('Saved');
+  // on a slow machine the save can still be waiting in the outbox: wait until the day is really stored before reloading
+  await page.waitForFunction(() => {
+    const db = JSON.parse(localStorage.getItem('coho-poc-demo-db-v1') || '{}');
+    return (db.timesheet_lines ?? []).some((l: { total_hours?: number; status?: string }) => Number(l.total_hours) === 10 && l.status === 'draft');
+  }, null, { timeout: 15_000 });
   await page.reload();                                                              // the reminder works out what is unsent on load
   // the demo already has a day the supervisor sent back to Sam, so that shows first, then the unsent fortnight
   await expect(page.locator('.ts-reminder')).toContainText('sent back');
