@@ -46,11 +46,13 @@ export const SYSTEM_ROLES = [
   { code: 'office', label: 'Office', description: 'Sets up people, trucks, customers and jobs; uploads and downloads data.', rank: 20 },
   { code: 'supervisor', label: 'Supervisor', description: "Sees all crews' work, approves timesheets, views reports.", rank: 30 },
   { code: 'driver', label: 'Driver', description: 'The basics: shifts, prestart, dockets, faults and their own drafts.', rank: 90 },
+  { code: 'undetermined', label: 'Undetermined', description: 'New user waiting for an admin to choose their role. Sees nothing until the role is changed.', rank: 95 },
 ];
 
 /** Starting access for the built-in roles (same rules as the database migration). */
 export function defaultAccess(role: string, f: Feature): Access {
   if (role === 'admin') return 'edit';
+  if (role === 'undetermined') return 'hidden';   // waiting for an admin to choose a role
   if (['shifts', 'dockets', 'faults'].includes(f.code)) return 'edit';
   if (f.code === 'forms') return ['driver', 'supervisor', 'office'].includes(role) ? 'edit' : 'hidden';
   if (['drafts', 'help'].includes(f.code)) return 'read';

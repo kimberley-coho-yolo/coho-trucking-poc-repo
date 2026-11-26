@@ -34,7 +34,7 @@ export interface TableDef {
 
 const DEPARTMENTS = ['Completions', 'Workover', 'Drilling', 'Flowback', 'Frac support', 'Rig support', 'Potable and septic', 'Civil', 'Landspray'];
 const DAY_NIGHT = ['Day', 'Night'];
-const ROLES = ['driver', 'supervisor', 'office', 'admin'];
+const ROLES = ['undetermined', 'driver', 'supervisor', 'office', 'admin'];
 
 export const TABLES: Record<TableName, TableDef> = {
   app_logins: {

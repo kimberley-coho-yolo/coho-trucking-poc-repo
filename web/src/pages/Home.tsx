@@ -27,6 +27,14 @@ export default function Home() {
     </Page>
   );
 
+  if (role === 'undetermined') return (
+    <Page title={person ? `Hi ${person.full_name.split(' ')[0]}` : 'Waiting for a role'}>
+      <p>You are signed in as <b>{person?.full_name ?? session?.email ?? session?.phone}</b>. Your login has been added but an admin has not chosen your role yet.</p>
+      <p className="muted">Once your role is set (Admin &gt; Logins and roles), sign out and sign in again, or refresh this page.</p>
+      <button onClick={() => refresh()}>Check again</button>
+    </Page>
+  );
+
   return (
     <Page title={person ? `Hi ${person.full_name.split(' ')[0]}` : 'Home'}
       howTo={<ol>

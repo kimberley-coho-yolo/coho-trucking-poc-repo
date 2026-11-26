@@ -38,6 +38,7 @@ export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [role, setRole] = useState<Role | null>(null);
   const [perms, setPerms] = useState<Perms>({});
+  const [loginPeople, setLoginPeople] = useState(0);   // people sharing this login (two names on one email or mobile)
   const [person, setPersonState] = useState<Row | null>(() => { try { return JSON.parse(sessionStorage.getItem(PERSON_KEY) || 'null'); } catch { return null; } });
   const setPerson = (p: Row | null) => { setPersonState(p); try { sessionStorage.setItem(PERSON_KEY, JSON.stringify(p)); } catch { /* ignore */ } };
   const refresh = useCallback(async () => {
@@ -45,6 +46,7 @@ export default function App() {
     setSession(s);
     setRole(s ? await backend().myRole().catch(() => null) : null);
     setPerms(s ? await backend().myPermissions().catch(() => ({})) : {});
+    setLoginPeople(s ? (await backend().peopleForMyPhone().catch(() => [])).length : 0);
     setReady(true);
     if (s) backend().kickTexts?.();   // send any docket texts still waiting
   }, []);
@@ -53,7 +55,8 @@ export default function App() {
 
   if (!ready) return <p className="page">Loading...</p>;
   const signedIn = !!session;
-  const needsName = signedIn && role === 'driver' && !person;
+  // drivers on a crew phone, and anyone on a login shared by two or more people, pick who they are first
+  const needsName = signedIn && !person && (role === 'driver' || loginPeople > 1);
   const signOut = async () => { await backend().signOut(); setPerson(null); await refresh(); nav('/login'); };
 
   // Guards: signed-out people go to sign-in; drivers on a work phone pick their name first.
@@ -79,7 +82,8 @@ export default function App() {
             {canRead(perms, 'help') && <Link to="/help">Help</Link>}
             <button className="link" onClick={signOut}>Sign out</button>
           </div>
-          <div className="who">{person?.full_name ?? session?.email ?? session?.phone} · {role ?? 'no access'}</div>
+          <div className="who">{person?.full_name ?? session?.email ?? session?.phone} · {role ?? 'no access'}
+            {loginPeople > 1 && role !== 'driver' && <> · <button className="link" onClick={() => { setPerson(null); nav('/who'); }}>Not you?</button></>}</div>
         </nav>
       )}
       {signedIn && <OutboxBar />}

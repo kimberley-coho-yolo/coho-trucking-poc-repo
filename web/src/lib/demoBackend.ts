@@ -169,6 +169,12 @@ export class DemoBackend implements Backend {
     const phone = this.session?.phone;
     const phones = this.t('work_phones').filter(w => samePhone(w.phone, phone)).map(w => w.id);
     const ids = new Set(this.t('phone_assignments').filter(a => phones.includes(a.work_phone_id)).map(a => a.person_id));
+    // people linked to login rows with the same email or mobile (a login shared by two people)
+    const s = this.session;
+    for (const l of this.t('app_logins')) {
+      if (!l.person_id || l.active === false || !s) continue;
+      if ((l.email && s.email && l.email.toLowerCase() === s.email.toLowerCase()) || (l.phone && s.phone && samePhone(l.phone, s.phone))) ids.add(l.person_id);
+    }
     return this.t('people').filter(p => ids.has(p.id) && p.active !== false);
   }
 

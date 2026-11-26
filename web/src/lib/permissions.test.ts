@@ -70,3 +70,23 @@ describe('demo backend follows the settings', () => {
     await expect(admin.remove('roles', driver.id)).rejects.toThrow();
   });
 });
+
+describe('undetermined role and shared logins', () => {
+  beforeEach(() => localStorage.clear());
+  it('an undetermined login sees nothing at all', () => {
+    for (const f of FEATURES) expect(defaultAccess('undetermined', f)).toBe('hidden');
+  });
+  it('a login shared by two people offers both names and the role waits for the admin', async () => {
+    const b = new DemoBackend();
+    await b.verifyCode({ email: 'admin@demo.local' }, '123456');
+    const max = await b.save('people', { full_name: 'Max Example', is_driver: false, active: true });
+    const tom = await b.save('people', { full_name: 'Tom Example', is_driver: false, active: true });
+    await b.save('app_logins', { label: 'Max Example', email: 'fieldsup@demo.local', role: 'undetermined', person_id: max.id, active: true });
+    await b.save('app_logins', { label: 'Tom Example', email: 'fieldsup@demo.local', role: 'undetermined', person_id: tom.id, active: true });
+    await b.signOut();
+    await b.verifyCode({ email: 'fieldsup@demo.local' }, '123456');
+    expect(await b.myRole()).toBe('undetermined');
+    expect(Object.values(await b.myPermissions()).every(a => a === 'hidden')).toBe(true);
+    expect((await b.peopleForMyPhone()).map(p => p.full_name).sort()).toEqual(['Max Example', 'Tom Example']);
+  });
+});
