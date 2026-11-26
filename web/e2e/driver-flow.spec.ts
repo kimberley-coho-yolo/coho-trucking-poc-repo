@@ -282,8 +282,13 @@ test('a timesheet not sent is flagged to the driver; supervisors pick week, fort
   await page.click('button.card:has-text("Driver timesheet")');
   await expect(page.locator('.period-label')).toContainText('Mon');                 // weeks start on Monday
   const current = await page.locator('.period-label').innerText();
+  // the "Please wait" pop-up shows while the fortnight loads, then clears
+  await page.evaluate(() => { const w = window as unknown as { sawLoading?: boolean }; w.sawLoading = false;
+    new MutationObserver(() => { if (document.querySelector('.loading-cover')) w.sawLoading = true; }).observe(document.body, { childList: true, subtree: true }); });
   await page.click('button[aria-label="Previous fortnight"]');
   await expect(page.locator('.period-label')).not.toHaveText(current);   // wait until the page has moved to the previous fortnight before typing
+  await expect(page.locator('.loading-cover')).toHaveCount(0);
+  expect(await page.evaluate(() => (window as unknown as { sawLoading?: boolean }).sawLoading)).toBe(true);
   const row = page.locator('table.fortnight tbody tr').nth(0);
   await row.locator('select').nth(0).selectOption('On shift');
   await row.locator('input[type=number]').fill('10');

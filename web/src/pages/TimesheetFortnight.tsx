@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { backend, type Row } from '../lib/backend';
 import { addDays, DAY_NAMES, fortnightTotals, periodDays, periodEnd, periodLength, periodStart, SHIFT_BANDS, submitBy, WET, weekday, type PeriodView } from '../lib/forms';
@@ -31,16 +31,35 @@ export default function TimesheetFortnight() {
   const [sub, setSub] = useState<Row>({});
   const [busy, setBusy] = useState(false);
 
-  const load = useCallback(async () => {
+  // Loads run in the background. Only the newest load counts, and it never wipes days the person has changed but not saved yet
+  // (on a slow phone a load could finish after they started typing). After a save or Reload, edits are cleared.
+  const loadSeq = useRef(0);
+  const toastRef = useRef(toast); toastRef.current = toast;
+  // "Please wait" shows on first open and whenever the driver, week or fortnight changes, until that period has loaded.
+  // Quiet refreshes (another device saved) do not show it, so typing is not interrupted.
+  const viewKey = personId + '|' + start + '|' + view;
+  const [loadedKey, setLoadedKey] = useState('');
+  const loading = !!personId && loadedKey !== viewKey;
+  const changedRef = useRef(changed); changedRef.current = changed;
+  const load = useCallback(async (discardEdits = false) => {
     if (!personId) return;
-    const all = await backend().list('timesheet_lines', { person_id: personId });
+    const seq = ++loadSeq.current;
+    const key = personId + '|' + start + '|' + view;
+    let all: Row[];
+    try { all = await backend().list('timesheet_lines', { person_id: personId }); }
+    catch (e) { if (seq === loadSeq.current) { toastRef.current.show(errText(e), 'err'); setLoadedKey(key); } return; }
+    if (seq !== loadSeq.current) return;
     const byDay: Record<string, Row> = {};
     // a clash line (a new driver's hours paired to this person, waiting for the approver) is shown on Approvals, not here
     for (const l of all) if (!l.clash_with && l.work_date >= days[0] && l.work_date <= days[days.length - 1] && !byDay[l.work_date]) byDay[l.work_date] = l;
-    setLines(byDay); setChanged(new Set());
-    const subs = (await backend().list('form_submissions', { form_type: 'driver_timesheet', person_id: personId })).filter(s => s.period_start === start);
+    const keep = discardEdits ? new Set<string>() : new Set([...changedRef.current].filter(d => days.includes(d)));
+    setLines(prev => { const next = { ...byDay }; for (const d of keep) if (prev[d]) next[d] = prev[d]; return next; });
+    setChanged(keep);
+    const subs = (await backend().list('form_submissions', { form_type: 'driver_timesheet', person_id: personId }).catch(() => [] as Row[])).filter(s => s.period_start === start);
+    if (seq !== loadSeq.current) return;
     setSub(subs[0] ?? { form_type: 'driver_timesheet', person_id: personId, period_start: start, status: 'draft', data: {} });
-  }, [personId, start, days]);
+    setLoadedKey(key);
+  }, [personId, start, days, view]);
   useEffect(() => { load(); }, [load]);
   useEffect(() => {
     if (!personId) return;
@@ -54,6 +73,7 @@ export default function TimesheetFortnight() {
   const list = days.map(d => lines[d]).filter(Boolean) as Row[];
   const totals = fortnightTotals(list);
   const setDay = (d: string, patch: Row) => {
+    if (loading) return;   // nothing typed while the period is still loading
     setLines({ ...lines, [d]: { person_id: personId, work_date: d, status: 'draft', ...(lines[d] ?? {}), ...patch } });
     setChanged(new Set(changed).add(d));
   };
@@ -71,7 +91,7 @@ export default function TimesheetFortnight() {
       const { id: _i, ...rest } = sub;
       const body = { ...(sub.id ? sub : rest), ...sheetPatch, data: { ...(sub.data ?? {}), totals: fortnightTotals(list), period_days: days.length } };
       const saved = await backend().save('form_submissions', body);
-      toast.show(saved.__queued ? 'Saved on this device. It will send by itself when there is signal.' : msg); await load();
+      toast.show(saved.__queued ? 'Saved on this device. It will send by itself when there is signal.' : msg); await load(true);
     } catch (e) { toast.show(errText(e), 'err'); }
     finally { setBusy(false); }
   };
@@ -145,10 +165,12 @@ export default function TimesheetFortnight() {
             {approver && status === 'submitted' && <><button className="primary" disabled={busy} onClick={approve}>Approve {word}</button>
               <button disabled={busy} onClick={giveBack}>Return with comment</button></>}
           </EditOnly>
-          <button onClick={() => load()}>Reload</button>
+          <button onClick={() => load(true)}>Reload</button>
           <button onClick={() => nav('/forms')}>Back to forms</button>
         </div>
       </>}
+      {loading && <div className="loading-cover" role="dialog" aria-modal="true" aria-label="Loading">
+        <div className="loading-box" role="status"><span className="spinner" aria-hidden="true" /> Please wait, loading your timesheet...</div></div>}
       {toast.node}
     </Page>
   );

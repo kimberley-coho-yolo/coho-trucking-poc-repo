@@ -239,3 +239,10 @@ tr.unassigned th, tr.unassigned td { background: #fffdf5; }
 .clash-card.on { border-color: var(--coho-black); box-shadow: inset 0 0 0 1px var(--coho-black); }
 .help.over-normal { color: var(--coho-red); font-weight: 700; }
 .pill.over-normal { background:#fff3cd; color:#7a5b00; box-shadow: inset 0 0 0 1px #c99a00; font-weight:700; }
+
+/* timesheet: "Please wait" pop-up while a week or fortnight loads (blocks typing until it has loaded) */
+.loading-cover { position: fixed; inset: 0; background: rgba(0,0,0,.35); display: flex; align-items: center; justify-content: center; z-index: 30; }
+.loading-box { background: #fff; padding: 18px 22px; border-radius: 10px; font-weight: 700; box-shadow: 0 4px 16px rgba(0,0,0,.25); display: flex; gap: 10px; align-items: center; max-width: 90vw; }
+.spinner { width: 18px; height: 18px; border: 3px solid var(--light); border-top-color: var(--coho-red); border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
