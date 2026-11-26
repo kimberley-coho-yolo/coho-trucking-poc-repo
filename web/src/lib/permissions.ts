@@ -23,6 +23,8 @@ export const FEATURES: Feature[] = [
   { code: 'forms', label: 'Timesheets, expense claims and checklists', grp: 'Driver', description: 'Fortnightly timesheet, expense reimbursement and land pre-inspection checklist (own forms). Approving them needs Timesheet approvals.', max_level: 'edit', admin_only_edit: false, sort: 35 },
   { code: 'drafts', label: 'My drafts', grp: 'Driver', description: 'List of unfinished work to carry on.', max_level: 'read', admin_only_edit: false, sort: 40 },
   { code: 'all_work', label: "All crews' shifts and dockets", grp: 'Supervision', description: "Read only: see everyone's shifts, dockets and faults. Edit: change them, and create, clone and edit dockets for any crew.", max_level: 'edit', admin_only_edit: false, sort: 50 },
+  { code: 'docket_assign', label: 'Assign dockets and roster', grp: 'Supervision', description: 'Read only: see the roster and who has which docket. Edit: assign dockets to crew phones, reassign them or cancel the assignment (texts the phone).', max_level: 'edit', admin_only_edit: false, sort: 52 },
+  { code: 'docket_review', label: 'Review completed dockets', grp: 'Supervision', description: 'Read only: see completed dockets waiting for review. Edit: mark them reviewed or return them to the driver. Only for the departments set on the login (none set = all).', max_level: 'edit', admin_only_edit: false, sort: 54 },
   { code: 'approvals', label: 'Timesheet approvals', grp: 'Supervision', description: 'Read only: see timesheets, expense claims and checklists waiting. Edit: approve, authorise or return them.', max_level: 'edit', admin_only_edit: false, sort: 60 },
   { code: 'reports', label: 'Reports', grp: 'Supervision', description: 'Hours and km per customer, rig, truck and travel.', max_level: 'read', admin_only_edit: false, sort: 70 },
   { code: 'people', label: 'People, work phones and phone sharing', grp: 'Admin lists', description: 'Who can be picked as a driver, crew phones and who uses which phone.', max_level: 'edit', admin_only_edit: false, sort: 80 },
@@ -54,7 +56,7 @@ export function defaultAccess(role: string, f: Feature): Access {
   if (['drafts', 'help'].includes(f.code)) return 'read';
   if (role === 'driver') return 'hidden';
   if (role !== 'office' && role !== 'supervisor') return 'hidden';
-  if (['all_work', 'approvals'].includes(f.code)) return 'edit';
+  if (['all_work', 'approvals', 'docket_assign', 'docket_review'].includes(f.code)) return 'edit';
   if (f.code === 'reports') return 'read';
   if (f.code === 'integration_data') return role === 'office' ? 'edit' : 'read';
   if (role === 'office' && ['people', 'fleet', 'customers', 'planning', 'data_transfer'].includes(f.code)) return 'edit';
@@ -93,7 +95,7 @@ export const TABLE_FEATURE: Partial<Record<TableName, string>> = {
   gps_trips: 'integration_data', prestart_records: 'integration_data', km_segments: 'integration_data',
   shifts: 'shifts', timesheet_lines: 'shifts', dockets: 'dockets', loads: 'dockets', signoffs: 'dockets', faults: 'faults',
   roles: 'settings', role_permissions: 'settings', features: 'settings',
-  form_submissions: 'forms', form_files: 'forms', app_settings: 'settings',
+  form_submissions: 'forms', form_files: 'forms', app_settings: 'settings', sms_outbox: 'docket_assign',
 };
 
 export const DATA_FEATURES = ['data_transfer', 'integration_data', 'query', 'integrations'];

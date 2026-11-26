@@ -185,3 +185,36 @@ table.fortnight tr.week2 td { border-top: 3px solid var(--coho-black); }
 .period-label { white-space: nowrap; }
 .timesheet-settings { border:1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin: 10px 0 16px; }
 table.fortnight td small.help { display:block; }
+/* ---------- roster, assignment, review ---------- */
+.time24 { width: 6.5em; font-variant-numeric: tabular-nums; }
+.time24.bad { border-color: var(--coho-red); box-shadow: 0 0 0 2px #fde1e3; }
+.datetime24 input[type=date] { width: auto; }
+.assign-box { display:flex; flex-direction:column; gap: 8px; }
+.assign-now { display:flex; flex-wrap:wrap; align-items:center; gap: 6px; }
+.pill.stage-unassigned { background:#fff3cd; color:#7a5b00; }
+.pill.stage-assigned { background: var(--light); box-shadow: inset 0 0 0 1px var(--slate); }
+.pill.stage-in_progress { background:#e3ecff; color:#1d3b8b; }
+.pill.stage-to_review { background:#fde1e3; box-shadow: inset 0 0 0 1px var(--coho-red); font-weight:700; }
+.pill.stage-returned { background: var(--coho-red); color:#fff; font-weight:700; }
+.pill.stage-reviewed, .pill.stage-completed { background:#dcf3e2; color: var(--ok); }
+.stage-counts { display:flex; flex-wrap:wrap; gap: 8px; margin: 6px 0 12px; }
+.stage-count { border:1px solid var(--line); border-radius: 8px; padding: 6px 10px; background:#fff; }
+.stage-count b { font-size: 1.2rem; margin-right: 4px; }
+tr.clickable { cursor:pointer; }
+tr.clickable:hover td { background: var(--light); }
+table.roster th, table.roster td { vertical-align: top; min-width: 120px; }
+table.roster tbody th { text-align:left; min-width: 150px; }
+table.roster tbody th small { display:block; font-weight:400; color: var(--slate); }
+table.roster .today { background: #fffaf0; }
+.roster-chip { display:flex; flex-direction:column; align-items:flex-start; width:100%; text-align:left; padding: 6px 8px; margin-bottom: 6px; border-radius: 6px; border:1px solid var(--line); background:#fff; font-size:.85rem; min-height: 44px; }
+.roster-chip small { color: var(--slate); font-size:.75rem; }
+.roster-chip.on { outline: 3px solid var(--coho-black); }
+.roster-chip.stage-to_review, .roster-chip.stage-returned { border-left: 5px solid var(--coho-red); }
+.roster-chip.stage-in_progress { border-left: 5px solid #1d3b8b; }
+.roster-chip.stage-reviewed, .roster-chip.stage-completed { border-left: 5px solid var(--ok); }
+.roster-chip.stage-assigned { border-left: 5px solid var(--slate); }
+.roster-add { width:100%; }
+tr.unassigned th, tr.unassigned td { background: #fffdf5; }
+.roster-sel { position: sticky; top: 0; z-index: 2; }
+.job small.err { color: var(--coho-red); }
+.review-box { border-color: var(--coho-red); }

@@ -193,6 +193,11 @@ export class OfflineBackend implements Backend {
   myPermissions() { return this.cached('perms', () => this.inner.myPermissions()) as Promise<Perms>; }
   peopleForMyPhone() { return this.cached('people', () => this.inner.peopleForMyPhone()) as Promise<Row[]>; }
   claimFirstAdmin() { return this.inner.claimFirstAdmin(); }
+  async kickTexts() { if (this.isOnline()) await this.inner.kickTexts?.().catch(() => null); }
+  async myReviewDepartments() {
+    const deps = await this.cached('deps' as any, async () => ((await this.inner.myReviewDepartments?.()) ?? []) as any);
+    return (deps ?? []) as string[];
+  }
   runSelect(sql: string) { return this.inner.runSelect(sql); }
 
   // ---------- reading ----------
@@ -332,6 +337,7 @@ export class OfflineBackend implements Backend {
         await this.sendOne(q);
         this.dropItem(q.id);
         await this.persist(true);
+        if (q.table === 'dockets') this.kickTexts();     // an assignment made offline: its text can go now
       } catch (e) {
         const kind = classifyError(e);
         if (kind === 'network') { q.status = 'queued'; q.reason = undefined; await this.persist(true); return; }

@@ -39,6 +39,10 @@ export interface Backend {
   runSelect(sql: string): Promise<Row[]>;
   // live updates: calls back when a watched row is added, changed or deleted on any device; returns "stop watching"
   watch(specs: WatchSpec[], onChange: (table: TableName, row: Row | null) => void): () => void;
+  // send texts the database queued (docket assigned / moved / cancelled); safe to call any time
+  kickTexts?(): Promise<void>;
+  // departments the signed-in reviewer covers; empty = all
+  myReviewDepartments?(): Promise<string[]> | string[];
 }
 
 /** The outbox (lib/outbox.ts) adds these on top of a Backend. */

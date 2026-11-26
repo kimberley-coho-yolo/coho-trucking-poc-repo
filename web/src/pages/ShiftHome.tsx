@@ -23,7 +23,10 @@ export default function ShiftHome() {
       const allJobs = await backend().list('jobs');
       setJobs(allocs.map(a => allJobs.find(j => j.id === a.job_id)).filter(Boolean) as Row[]);
     }
-    if (s?.driver_id) setPrepared((await backend().list('dockets')).filter(d => !d.shift_id && d.status !== 'closed' && (d.assigned_person_ids ?? []).includes(s.driver_id)));
+    // dockets assigned to this driver, or to this crew phone for anyone on it (a docket for a named driver only shows for them)
+    if (s) setPrepared((await backend().list('dockets')).filter(d => !d.shift_id && d.status !== 'closed' && d.review_status !== 'reviewed' && (
+      (d.assigned_person_ids ?? []).includes(s.driver_id)
+      || (!!d.assigned_phone_id && d.assigned_phone_id === s.work_phone_id && !(d.assigned_person_ids ?? []).length))));
     if (s) await backend().save('shifts', { id: s.id, last_step: 'shift' }).catch(() => null);
   })(); }, [id]);
   if (!shift) return <Page title="Shift"><p>Loading, or this shift is not visible to you.</p></Page>;
@@ -72,7 +75,7 @@ export default function ShiftHome() {
         </div>
         {open && <p className="note">Docket in progress. <Link to={'/docket/' + open.id}>Open it</Link> and close it before starting another.</p>}
       </div>
-      {!!prepared.length && <><h2>Prepared by the office for you</h2>
+      {!!prepared.length && <><h2>Jobs for today</h2>
         <div className="stack">{prepared.map(p => <button key={p.id} className="big" disabled={!!open || readOnly} onClick={async () => {
           try {
             await backend().save('dockets', { id: p.id, version: p.version, shift_id: shift.id, status: 'open', start_at: p.start_at ?? nowIso() });

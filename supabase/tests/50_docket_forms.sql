@@ -66,7 +66,8 @@ do $$ begin
 end $$;
 reset role;
 
--- reassigning to Jo gives Jo access straight away
+-- reassigning to Jo gives Jo access straight away (done by the office)
+select pg_temp.as_user('aaaaaaaa-0000-0000-0000-000000000006', '{"email":"office@example.com"}');
 update public.dockets set assigned_person_ids = array['44444444-0000-0000-0000-000000000003']::uuid[] where id = '77777777-0000-0000-0000-000000000002';
 select pg_temp.as_user('aaaaaaaa-0000-0000-0000-000000000007', '{"phone":"61400000002"}');
 set role authenticated;

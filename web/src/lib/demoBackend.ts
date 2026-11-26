@@ -63,7 +63,67 @@ export class DemoBackend implements Backend {
     if (!r) return false;
     const d = table === 'dockets' ? r : (table === 'loads' || table === 'signoffs') ? this.t('dockets').find(x => x.id === r.docket_id) : undefined;
     const mine = this.myPeople();
-    return !!d && (d.assigned_person_ids ?? []).some((p: string) => mine.includes(p));
+    return !!d && ((d.assigned_person_ids ?? []).some((p: string) => mine.includes(p)) || (!!d.assigned_phone_id && this.myPhones().includes(d.assigned_phone_id)));
+  }
+  private myPhones(): string[] {
+    const ph = this.session?.phone;
+    return ph ? this.t('work_phones').filter(w => w.active !== false && samePhone(w.phone, ph)).map(w => w.id) : [];
+  }
+  /** Departments this login reviews; empty = all (same as my_review_departments() in the database). */
+  myReviewDepartments(): string[] {
+    const s = this.session; if (!s) return [];
+    const logins = this.t('app_logins').filter(l => l.active !== false && ((l.email && s.email && l.email.toLowerCase() === s.email.toLowerCase()) || (l.phone && s.phone && samePhone(l.phone, s.phone))));
+    if (!logins.length || logins.some(l => !(l.departments ?? []).length)) return [];
+    return [...new Set(logins.flatMap(l => l.departments ?? []))] as string[];
+  }
+  // the database's docket_workflow() trigger: who may assign, completing sends for review, reviewing
+  private docketWorkflow(existing: Row | undefined, saved: Row) {
+    const p = this.perms(); const admin = this.role() === 'admin'; const now = new Date().toISOString();
+    const mineP = this.myPeople(); const mineW = this.myPhones();
+    if (!existing) {
+      const forOthers = (saved.assigned_phone_id && !mineW.includes(saved.assigned_phone_id)) || (saved.assigned_person_ids ?? []).some((x: string) => !mineP.includes(x));
+      if (forOthers && !canEdit(p, 'docket_assign')) throw new Error('Only supervisor, office or admin can assign dockets to someone else (Settings: Assign dockets and roster).');
+      if (saved.assigned_phone_id || (saved.assigned_person_ids ?? []).length) { saved.assigned_at = now; saved.assigned_by = this.session?.userId; }
+      if (saved.status === 'closed') { saved.completed_at ??= now; saved.review_status ??= 'to_review'; }
+      return;
+    }
+    const changed = (saved.assigned_phone_id ?? null) !== (existing.assigned_phone_id ?? null)
+      || JSON.stringify(saved.assigned_person_ids ?? []) !== JSON.stringify(existing.assigned_person_ids ?? []);
+    if (changed) {
+      if (!canEdit(p, 'docket_assign')) throw new Error('Only supervisor, office or admin can reassign or cancel a docket assignment (Settings: Assign dockets and roster).');
+      saved.assigned_at = now; saved.assigned_by = this.session?.userId;
+    }
+    if (existing.review_status === 'reviewed' && !(admin || canEdit(p, 'docket_review'))) throw new Error('This docket has been reviewed and is locked. Ask a supervisor to reopen it.');
+    if (saved.status === 'closed' && existing.status !== 'closed') {
+      saved.completed_at = now;
+      if ((saved.review_status ?? null) === (existing.review_status ?? null)) saved.review_status = 'to_review';
+    } else if (saved.status !== 'closed' && existing.status === 'closed' && saved.review_status === existing.review_status && existing.review_status === 'to_review') saved.review_status = null;
+    if (saved.review_status !== existing.review_status && ['reviewed', 'returned'].includes(saved.review_status)) {
+      if (!canEdit(p, 'docket_review')) throw new Error('Only someone with Review completed dockets can review a docket.');
+      const deps = this.myReviewDepartments();
+      if (!admin && deps.length && !deps.includes(saved.department ?? '')) throw new Error(`This docket is for ${saved.department ?? 'no department'}, which is not one of your departments.`);
+      saved.reviewed_by = this.session?.userId; saved.reviewed_at = now;
+      if (saved.review_status === 'returned') { saved.status = 'open'; saved.completed_at = null; }
+    }
+  }
+  // the database's docket_assignment_texts() trigger
+  private docketTexts(existing: Row | undefined, saved: Row) {
+    if (existing && (existing.assigned_phone_id ?? null) === (saved.assigned_phone_id ?? null)) return;
+    const phone = (id?: string | null) => (id ? this.t('work_phones').find(w => w.id === id)?.phone : undefined);
+    const loc = this.t('locations').find(l => l.id === saved.location_id)?.name;
+    const day = saved.work_date ?? (saved.start_at ? new Date(saved.start_at).toISOString().slice(0, 10) : null);
+    const label = `docket ${saved.docket_no ?? '?'}${day ? ` for ${day.slice(8, 10)}/${day.slice(5, 7)}` : ''}${loc ? ` at ${loc}` : ''}`;
+    const out = this.t('sms_outbox');
+    const add = (kind: string, wp: string, body: string) => out.push({ id: uuid(), kind, docket_id: saved.id, work_phone_id: wp, phone: phone(wp), body, status: 'pending', attempts: 0, created_at: new Date().toISOString(), created_by: this.session?.userId });
+    if (saved.assigned_phone_id && phone(saved.assigned_phone_id)) add('docket_assigned', saved.assigned_phone_id, `Coho Drive: ${label} is assigned to your phone. Open Coho Drive to view it.`);
+    if (existing?.assigned_phone_id && phone(existing.assigned_phone_id)) add(saved.assigned_phone_id ? 'docket_moved' : 'docket_cancelled', existing.assigned_phone_id,
+      `Coho Drive: ${label} ${saved.assigned_phone_id ? 'has been moved to another crew' : 'has been cancelled for your phone'}. No action needed.`);
+  }
+  /** Demo stand-in for the docket-sms function: marks queued texts as sent (nothing is really texted). */
+  async kickTexts() {
+    let n = 0;
+    for (const m of this.t('sms_outbox')) if (m.status === 'pending') { m.status = 'sent'; m.sent_at = new Date().toISOString(); m.provider_message_id = 'demo'; n++; this.emit('sms_outbox', m); }
+    if (n) this.persist();
   }
   private persist() { safeSet(KEY, JSON.stringify(this.db)); }
   reset() { this.db = demoSeed(); this.persist(); }
@@ -128,6 +188,8 @@ export class DemoBackend implements Backend {
     if (DRIVER_TABLES.includes(table)) return canRead(p, 'all_work') || ((own || this.assigned(table, r)) && canRead(p, f!));
     if (table === 'form_submissions') return this.formVisible(r);
     if (table === 'app_settings') return true;
+    if (table === 'sms_outbox') return canRead(p, 'docket_assign') || canRead(p, 'audit');
+    if (table === 'dockets' && (canRead(p, 'docket_assign') || canRead(p, 'docket_review'))) return true;
     if (table === 'form_files') { const s = this.t('form_submissions').find(x => x.id === r.submission_id); return !!s && this.formVisible(s); }
     return f ? canRead(p, f) : role === 'admin';
   }
@@ -151,6 +213,8 @@ export class DemoBackend implements Backend {
       if (existing) return existing.created_by === this.session?.userId || canEdit(p, 'approvals');
       return canEdit(p, 'forms') || canEdit(p, 'all_work') || canEdit(p, 'approvals');
     }
+    if (table === 'sms_outbox') return false;
+    if (table === 'dockets' && existing && (canEdit(p, 'docket_assign') || canEdit(p, 'docket_review'))) return true;
     if (DRIVER_TABLES.includes(table)) {
       if (table === 'timesheet_lines' && existing?.status === 'approved' && role !== 'admin') return false;
       const own = !existing || existing.created_by === this.session?.userId || this.assigned(table, existing)
@@ -232,6 +296,7 @@ export class DemoBackend implements Backend {
       ? { ...existing, ...body, updated_at: now }
       : { id: uuid(), created_at: now, created_by: this.session?.userId, ...body };
     if (table === 'form_submissions') this.formGuard(existing, body, saved);
+    if (table === 'dockets') this.docketWorkflow(existing, saved);
     if (table === 'dockets') {
       if (existing) { saved.version = (existing.version ?? 1) + 1; saved.updated_by = this.session?.userId; }
       else {
@@ -241,7 +306,7 @@ export class DemoBackend implements Backend {
     }
     if (idx >= 0) list[idx] = saved; else list.push(saved);
     this.audit(table, saved.id, existing ? 'UPDATE' : 'INSERT', existing, saved);
-    if (table === 'dockets') this.syncFromDocket(existing, saved);
+    if (table === 'dockets') { this.syncFromDocket(existing, saved); this.docketTexts(existing, saved); }
     if (table === 'shifts') for (const x of [saved, existing]) if (x) {
       const days = new Set([x.shift_date, ...(x.sign_in_at && x.sign_out_at && new Date(x.sign_out_at) > new Date(x.sign_in_at) ? daysCovered(x.sign_in_at, x.sign_out_at) : [])]);
       for (const dd of days) this.refreshDay(x.driver_id, dd);

@@ -4,6 +4,7 @@ import { backend } from '../lib/backend';
 import { useApp } from '../state';
 import { EditOnly, errText, FieldInput, nowIso, Page, QrScanner, todayIso, useRows, useToast } from '../components/ui';
 import { TABLES } from '../lib/schema';
+import { JobsToday } from '../components/assign';
 
 export default function StartShift() {
   const { person, session } = useApp();
@@ -35,6 +36,8 @@ export default function StartShift() {
       <li>Check the date, Day or Night, and the trailer.</li>
       <li>Tap <b>Next: prestart</b>. Or <b>Save and exit</b> to finish later.</li>
     </ol>}>
+      <JobsToday />
+      <h2>Your truck</h2>
       <QrScanner onResult={useCode} />
       <div className="grid">
         <label className="field"><span className="field-label">QR code (typed)</span>

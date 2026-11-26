@@ -3,7 +3,8 @@ import { useState } from 'react';
 import type { Field } from '../lib/schema';
 import { backend, type Row } from '../lib/backend';
 import { cloneDocket, COMMON_FIELDS, defaultFormFor, FORMS, formFor, toView, total, type FormDef } from '../lib/docketForms';
-import { EditOnly, errText, FieldGrid, FieldInput, refLabel, todayIso, useReadOnly, useRows } from './ui';
+import { EditOnly, errText, FieldGrid, FieldInput, fmt, refLabel, todayIso, useReadOnly, useRows } from './ui';
+import { PhoneAndDrivers } from './assign';
 
 /** Tick the drivers who should see this docket on their phone. */
 export function PeoplePicker({ value, onChange, disabled }: { value: string[]; onChange: (ids: string[]) => void; disabled?: boolean }) {
@@ -36,7 +37,7 @@ function CellValue({ field, value }: { field: Field; value: any }) {
   const ref = useRows(field.ref ?? 'integrations');
   if (value === null || value === undefined || value === '') return <span className="muted">-</span>;
   if (field.type === 'ref') return <>{refLabel(field.ref!, ref, value)}</>;
-  if (field.type === 'datetime') return <>{new Date(value).toLocaleString('en-AU', { dateStyle: 'short', timeStyle: 'short' })}</>;
+  if (field.type === 'datetime') return <>{fmt(value)}</>;
   if (field.type === 'number') return <>{Number(value).toLocaleString('en-AU')}</>;
   return <>{String(value)}</>;
 }
@@ -102,17 +103,19 @@ export function ClonePanel({ src, rows, onDone, onCancel }: { src: Row; rows: Ro
 }
 
 /** Office / supervisor: start a new docket from one of the forms. */
-export function NewDocketPanel({ onDone, onCancel }: { onDone: (id: string) => void; onCancel: () => void }) {
+export function NewDocketPanel({ onDone, onCancel, defaults }: { onDone: (id: string) => void; onCancel: () => void; defaults?: Row }) {
   const readOnly = useReadOnly();
-  const [v, setV] = useState<Row>({ form_type: 'landspray_runsheet', work_date: todayIso(), assigned_person_ids: [] });
+  const [v, setV] = useState<Row>({ form_type: 'landspray_runsheet', work_date: todayIso(), assigned_person_ids: [], assigned_phone_id: null, ...(defaults ?? {}) });
   const [err, setErr] = useState('');
   const form = formFor(v.form_type);
   const go = async () => {
     try {
       const saved = await backend().save('dockets', {
         form_type: form.code, status: 'draft', work_date: v.work_date ?? null, truck_id: v.truck_id ?? null, customer_id: v.customer_id ?? null,
-        location_id: v.location_id ?? null, department: v.department ?? form.departments[0] ?? null, assigned_person_ids: v.assigned_person_ids ?? [], extras: {},
+        location_id: v.location_id ?? null, department: v.department ?? form.departments[0] ?? null, assigned_person_ids: v.assigned_person_ids ?? [],
+        assigned_phone_id: v.assigned_phone_id ?? null, extras: {},
       });
+      if (v.assigned_phone_id) backend().kickTexts?.();
       onDone(saved.id);
     } catch (e) { setErr(errText(e)); }
   };
@@ -129,7 +132,8 @@ export function NewDocketPanel({ onDone, onCancel }: { onDone: (id: string) => v
       <FieldGrid fields={[COMMON_FIELDS[0], COMMON_FIELDS[1], COMMON_FIELDS[2],
         { name: 'customer_id', label: 'Customer', type: 'ref', ref: 'customers' }, { name: 'location_id', label: 'Rig / location', type: 'ref', ref: 'locations' }]}
         value={v} onChange={setV} />
-      <PeoplePicker value={v.assigned_person_ids ?? []} onChange={ids => setV({ ...v, assigned_person_ids: ids })} />
+      <PhoneAndDrivers phoneId={v.assigned_phone_id ?? null} personIds={v.assigned_person_ids ?? []} onChange={(w, p) => setV({ ...v, assigned_phone_id: w, assigned_person_ids: p })} />
+      <p className="muted">{v.assigned_phone_id ? 'The crew phone gets a text when you create the docket.' : 'Not assigned yet: you can assign it later from the docket or the roster.'}</p>
       {err && <p className="err">{err}</p>}
       <div className="row"><button className="primary" onClick={go}>Create docket</button><button onClick={onCancel}>Cancel</button></div>
     </div>

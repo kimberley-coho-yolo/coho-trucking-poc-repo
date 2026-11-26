@@ -17,10 +17,51 @@ export function fromLocalInput(v: string): string | null { return v ? new Date(v
 export function fmt(iso?: string | null): string {
   if (!iso) return '';
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? String(iso) : d.toLocaleString('en-AU', { dateStyle: 'short', timeStyle: 'short' });
+  return Number.isNaN(d.getTime()) ? String(iso) : d.toLocaleString('en-AU', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+}
+/** 24-hour time only, e.g. 18:30. */
+export function fmtTime(iso?: string | null): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '' : d.toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+}
+/** Tidy typed times into 24-hour HH:MM: "630" -> "06:30", "18.5" -> null, "1830" -> "18:30", "7" -> "07:00". */
+export function normTime(v: string): string | null {
+  const t = v.trim().replace(/[.\s]/g, ':');
+  let h: number, m: number;
+  if (/^\d{1,2}$/.test(t)) { h = +t; m = 0; }
+  else if (/^\d{3,4}$/.test(t)) { h = +t.slice(0, t.length - 2); m = +t.slice(-2); }
+  else { const x = /^(\d{1,2}):(\d{2})$/.exec(t); if (!x) return null; h = +x[1]; m = +x[2]; }
+  if (h > 23 || m > 59) return null;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+/** A time box that always works in 24-hour time, whatever the phone's settings. */
+export function Time24({ id, value, onChange, disabled }: { id: string; value?: string | null; onChange: (v: string | null) => void; disabled?: boolean }) {
+  const [text, setText] = useState(value ?? '');
+  const [bad, setBad] = useState(false);
+  useEffect(() => { setText(value ?? ''); setBad(false); }, [value]);
+  return <input id={id} type="text" inputMode="numeric" placeholder="HH:MM" maxLength={5} className={'time24' + (bad ? ' bad' : '')} disabled={disabled}
+    aria-invalid={bad} title="24-hour time, e.g. 06:30 or 18:45" value={text}
+    onChange={e => { setText(e.target.value); const n = normTime(e.target.value); if (n && e.target.value.length >= 4) { setBad(false); onChange(n); } }}
+    onBlur={() => { if (!text) { setBad(false); onChange(null); return; } const n = normTime(text); setBad(!n); if (n) { setText(n); onChange(n); } }} />;
+}
+/** Date and 24-hour time, stored as one timestamp. */
+export function DateTime24({ id, value, onChange }: { id: string; value?: string | null; onChange: (v: string | null) => void }) {
+  const local = toLocalInput(value);
+  const [date, setDate] = useState(local.slice(0, 10));
+  const [time, setTime] = useState<string | null>(local.slice(11, 16) || null);
+  useEffect(() => { const l = toLocalInput(value); setDate(l.slice(0, 10)); setTime(l.slice(11, 16) || null); }, [value]);
+  const push = (d: string, t: string | null) => { if (!d) { onChange(null); return; } if (t) onChange(new Date(`${d}T${t}`).toISOString()); };
+  return (
+    <span className="row datetime24">
+      <input id={id} type="date" value={date} onChange={e => { setDate(e.target.value); push(e.target.value, time ?? (e.target.value ? '00:00' : null)); }} />
+      <Time24 id={id + '-time'} value={time} onChange={t => { setTime(t); if (date) push(date, t); }} />
+      <button type="button" className="small" onClick={() => onChange(nowIso())}>Now</button>
+    </span>);
 }
 export const nowIso = () => new Date().toISOString();
-export const todayIso = () => new Date().toISOString().slice(0, 10);
+/** Today's date on this device (not UTC, so 6am in Roma is still today). */
+export const todayIso = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 
 // ---------- reference lookups (cached per table) ----------
 const refCache: Partial<Record<TableName, Promise<Row[]>>> = {};
@@ -51,12 +92,8 @@ export function FieldInput({ field, value, onChange }: { field: Field; value: an
     case 'textarea': input = <textarea id={id} value={value ?? ''} onChange={e => onChange(e.target.value)} rows={3} />; break;
     case 'number': input = <input id={id} type="number" inputMode="decimal" value={value ?? ''} onChange={e => onChange(e.target.value === '' ? null : Number(e.target.value))} />; break;
     case 'date': input = <input id={id} type="date" value={toLocalInput(value, true)} onChange={e => onChange(e.target.value || null)} />; break;
-    case 'datetime': input = (
-      <span className="row">
-        <input id={id} type="datetime-local" value={toLocalInput(value)} onChange={e => onChange(fromLocalInput(e.target.value))} />
-        <button type="button" className="small" onClick={() => onChange(nowIso())}>Now</button>
-      </span>); break;
-    case 'time': input = <input id={id} type="time" value={value ?? ''} onChange={e => onChange(e.target.value || null)} />; break;
+    case 'datetime': input = <DateTime24 id={id} value={value} onChange={onChange} />; break;
+    case 'time': input = <Time24 id={id} value={value} onChange={onChange} />; break;
     case 'multi': {
       const cur: string[] = Array.isArray(value) ? value : [];
       input = (

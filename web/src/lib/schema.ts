@@ -21,7 +21,7 @@ export type TableName =
   | 'customers' | 'locations' | 'jobs' | 'allocations' | 'shifts' | 'dockets' | 'loads'
   | 'signoffs' | 'faults' | 'timesheet_lines' | 'gps_trips' | 'prestart_records'
   | 'km_segments' | 'import_batches' | 'integrations' | 'audit_log' | 'roles' | 'features' | 'role_permissions'
-  | 'form_submissions' | 'form_files' | 'app_settings';
+  | 'form_submissions' | 'form_files' | 'app_settings' | 'sms_outbox';
 
 export interface TableDef {
   name: TableName;
@@ -46,6 +46,7 @@ export const TABLES: Record<TableName, TableDef> = {
       { name: 'phone', label: 'Mobile', type: 'phone', help: 'Sign in with a code texted to this mobile. Any format, e.g. 0400 000 001' },
       { name: 'role', label: 'Role', type: 'select', options: ROLES, optionsFrom: { table: 'roles', value: 'code', label: 'label' }, help: 'Roles and what each can see are set in Settings (admin only)' },
       { name: 'person_id', label: 'Person (optional)', type: 'ref', ref: 'people' },
+      { name: 'departments', label: 'Reviews dockets for', type: 'multi', options: DEPARTMENTS, help: 'Supervisors: which departments\' completed dockets come to them. None ticked = all departments', hideInTable: true },
       { name: 'active', label: 'Active', type: 'bool' },
     ],
   },
@@ -186,6 +187,8 @@ export const TABLES: Record<TableName, TableDef> = {
       { name: 'status', label: 'Status', type: 'select', options: ['draft', 'open', 'closed'] },
       { name: 'work_date', label: 'Date', type: 'date' },
       { name: 'truck_id', label: 'Truck', type: 'ref', ref: 'trucks' },
+      { name: 'assigned_phone_id', label: 'Crew phone', type: 'ref', ref: 'work_phones' },
+      { name: 'review_status', label: 'Review', type: 'select', options: ['to_review', 'reviewed', 'returned'] },
       { name: 'customer_id', label: 'Customer', type: 'ref', ref: 'customers' },
       { name: 'location_id', label: 'Rig / location', type: 'ref', ref: 'locations' },
       { name: 'department', label: 'Department', type: 'select', options: DEPARTMENTS },
@@ -376,6 +379,15 @@ export const TABLES: Record<TableName, TableDef> = {
       { name: 'approver_name', label: 'Approved / authorised by', type: 'text' },
       { name: 'approver_comment', label: 'Approver comment', type: 'textarea', hideInTable: true },
       { name: 'approved_at', label: 'Approved at', type: 'datetime' },
+    ],
+  },
+  sms_outbox: {
+    name: 'sms_outbox', label: 'Docket texts', group: 'System',
+    display: r => `${r.kind} ${r.phone}`,
+    fields: [
+      { name: 'created_at', label: 'Queued', type: 'datetime' }, { name: 'kind', label: 'Kind', type: 'text' }, { name: 'phone', label: 'Mobile', type: 'text' },
+      { name: 'status', label: 'Status', type: 'text' }, { name: 'sent_at', label: 'Sent', type: 'datetime' }, { name: 'body', label: 'Text', type: 'text' },
+      { name: 'error', label: 'Problem', type: 'text' },
     ],
   },
   app_settings: {

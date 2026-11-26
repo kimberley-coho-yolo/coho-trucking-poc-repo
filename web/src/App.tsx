@@ -14,6 +14,7 @@ import ShiftHome from './pages/ShiftHome';
 import Prestart from './pages/Prestart';
 import DocketPage from './pages/DocketPage';
 import Dockets from './pages/Dockets';
+import Roster from './pages/Roster';
 import Forms from './pages/Forms';
 import FormPage from './pages/FormPage';
 import TimesheetFortnight from './pages/TimesheetFortnight';
@@ -45,6 +46,7 @@ export default function App() {
     setRole(s ? await backend().myRole().catch(() => null) : null);
     setPerms(s ? await backend().myPermissions().catch(() => ({})) : {});
     setReady(true);
+    if (s) backend().kickTexts?.();   // send any docket texts still waiting
   }, []);
   useEffect(() => { refresh(); }, [refresh]);
   const loc = useLocation(); const nav = useNavigate();
@@ -67,6 +69,7 @@ export default function App() {
             <Link to="/">Home</Link>
             {canRead(perms, 'drafts') && <Link to="/drafts">My drafts</Link>}
             {canRead(perms, 'all_work') && <Link to="/dockets">Dockets</Link>}
+            {canRead(perms, 'docket_assign') && <Link to="/roster">Roster</Link>}
             {(canRead(perms, 'forms') || canRead(perms, 'approvals')) && <Link to="/forms">Forms</Link>}
             {canRead(perms, 'approvals') && <Link to="/approvals">Approvals</Link>}
             {canRead(perms, 'reports') && <Link to="/reports">Reports</Link>}
@@ -94,8 +97,9 @@ export default function App() {
           <Route path="/forms" element={<Guard access={best(perms, 'forms', 'approvals')}><Forms /></Guard>} />
           <Route path="/forms/timesheet" element={<Guard access={best(perms, 'forms', 'approvals')}><TimesheetFortnight /></Guard>} />
           <Route path="/forms/:id" element={<Guard access={best(perms, 'forms', 'approvals', 'all_work')}><FormPage /></Guard>} />
+          <Route path="/roster" element={<Guard access={best(perms, 'docket_assign')}><Roster /></Guard>} />
           <Route path="/dockets" element={<Guard access={best(perms, 'all_work')}><Dockets /></Guard>} />
-          <Route path="/docket/:id" element={<Guard access={best(perms, 'dockets', 'all_work')}><DocketPage /></Guard>} />
+          <Route path="/docket/:id" element={<Guard access={best(perms, 'dockets', 'all_work', 'docket_assign', 'docket_review')}><DocketPage /></Guard>} />
           <Route path="/fault/new" element={<Guard access={best(perms, 'faults')}><FaultPage /></Guard>} />
           <Route path="/drafts" element={<Guard access={best(perms, 'drafts')}><Drafts /></Guard>} />
           <Route path="/approvals" element={<Guard access={best(perms, 'approvals')}><Approvals /></Guard>} />

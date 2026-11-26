@@ -5,7 +5,8 @@ import { TABLES } from '../lib/schema';
 import { applyRowRules, COMMON_FIELDS, formFor, FORMS, fromView, shiftFields, shiftKey, sortRows, TIME_FIELDS, toView } from '../lib/docketForms';
 import { DEPARTMENT_EXTRAS } from '../lib/extras';
 import { EditOnly, errText, FieldGrid, FieldInput, fmt, nowIso, Page, SignaturePad, useReadOnly, useToast } from '../components/ui';
-import { ClonePanel, PeoplePicker, RowsBlock } from '../components/docket';
+import { ClonePanel, RowsBlock } from '../components/docket';
+import { AssignmentBox } from '../components/assign';
 import { useAccess, useApp } from '../state';
 import { isLong } from '../lib/timesheetSync';
 import { hoursBetween } from '../lib/timesheet';
@@ -150,6 +151,21 @@ export default function DocketPage() {
       {!d.shift_id && myShift && !readOnly && <div className="note">This docket is not on a shift yet.
         <button className="small" onClick={() => save({ extra: { shift_id: myShift.id, status: 'open', start_at: d.start_at ?? nowIso() } }).then(() => loadAll())}>Add it to my open shift</button></div>}
 
+      {d.review_status === 'returned' && <div className="note" role="alert"><b>Returned by the supervisor{d.reviewed_at ? ` (${fmt(d.reviewed_at)})` : ''}:</b> {d.review_comment || 'please check and close it again.'}</div>}
+      {d.review_status === 'reviewed' && <div className="note" role="status"><b>Reviewed {fmt(d.reviewed_at)}.</b> This docket is locked{can.edit('docket_review') ? ' for drivers' : ''}.{d.review_comment ? ` Comment: ${d.review_comment}` : ''}</div>}
+      {d.review_status === 'to_review' && can.edit('docket_review') && <fieldset className="review-box"><legend>Review this completed docket</legend>
+        <label className="field"><span className="field-label">Comment (needed to return it)</span>
+          <textarea value={d.review_comment ?? ''} onChange={e => upd({ ...d, review_comment: e.target.value })} rows={2} /></label>
+        <div className="row">
+          <button className="primary" onClick={() => save({ extra: { review_status: 'reviewed' } })}>Mark reviewed</button>
+          <button onClick={() => { if (!d.review_comment) { toast.show('Add a comment saying what to fix', 'err'); return; } save({ extra: { review_status: 'returned' } }); }}>Return to driver</button>
+        </div>
+        <small className="help">Completed {fmt(d.completed_at)}. Reviewed dockets are locked for drivers.</small>
+      </fieldset>}
+      <fieldset><legend>Assigned to</legend>
+        <AssignmentBox docket={{ ...fromView(d, 'dockets'), version: version.current }} blocked={dirty ? 'Save your changes first, then you can reassign.' : undefined}
+          onSaved={() => loadAll()} />
+      </fieldset>
       <fieldset><legend>Docket</legend>
         {office && !readOnly && <label className="field" htmlFor="f-form_type"><span className="field-label">Form</span>
           <select id="f-form_type" value={form.code} onChange={e => upd({ ...d, form_type: e.target.value })}>
@@ -157,7 +173,6 @@ export default function DocketPage() {
           </select>
           <small className="help">Changing the form keeps what is already filled in; fields the new form does not use are kept but hidden.</small></label>}
         <FieldGrid fields={COMMON_FIELDS} value={d} onChange={upd} />
-        <PeoplePicker value={d.assigned_person_ids ?? []} onChange={ids => upd({ ...d, assigned_person_ids: ids })} disabled={!office || readOnly} />
       </fieldset>
 
       <fieldset><legend>{form.shifts ? 'Truck, rig and well' : 'Details'}</legend>

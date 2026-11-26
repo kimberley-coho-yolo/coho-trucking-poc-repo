@@ -7,7 +7,7 @@ const C1 = '11111111-0000-0000-0000-000000000001', C2 = '11111111-0000-0000-0000
 const L1 = '22222222-0000-0000-0000-000000000001', L2 = '22222222-0000-0000-0000-000000000002', L3 = '22222222-0000-0000-0000-000000000003';
 const T4 = '33333333-0000-0000-0000-000000000004', T87 = '33333333-0000-0000-0000-000000000087';
 const P1 = '44444444-0000-0000-0000-000000000001', P2 = '44444444-0000-0000-0000-000000000002', P3 = '44444444-0000-0000-0000-000000000003';
-const W1 = '55555555-0000-0000-0000-000000000001';
+const W1 = '55555555-0000-0000-0000-000000000001', W2 = '55555555-0000-0000-0000-000000000002';
 const J1 = '66666666-0000-0000-0000-000000000001', J2 = '66666666-0000-0000-0000-000000000002';
 const EQ = '77777777-0000-0000-0000-000000000001';
 const DRIVER_USER = 'demo-61400000001';
@@ -18,7 +18,7 @@ function at(dayOffset: number, hh: number, mm = 0): string {
 }
 function dateOnly(dayOffset: number): string {
   const d = new Date(); d.setDate(d.getDate() + dayOffset);
-  return d.toISOString().slice(0, 10);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 export function demoSeed(): Record<string, Row[]> {
@@ -29,16 +29,22 @@ export function demoSeed(): Record<string, Row[]> {
       { id: 'l2', label: 'Demo office', email: 'office@demo.local', role: 'office', active: true },
       { id: 'l3', label: 'Demo supervisor', email: 'supervisor@demo.local', role: 'supervisor', active: true },
       { id: 'l4', label: 'Crew phone 1', phone: '0400 000 001', role: 'driver', active: true },
+      { id: 'l5', label: 'Crew phone 2', phone: '0400 000 002', role: 'driver', active: true },
+      { id: 'l6', label: 'Drilling supervisor', email: 'drilling.sup@demo.local', role: 'supervisor', departments: ['Drilling'], active: true },
     ],
     people: [
       { id: P1, full_name: 'Alex Driver', crew: 'Shift 1 Day', department: 'Completions', is_driver: true, active: true },
       { id: P2, full_name: 'Sam Driver', crew: 'Shift 2 Day', department: 'Completions', is_driver: true, active: true },
       { id: P3, full_name: 'Jo Cover', crew: 'Shift 1 Night', department: 'Drilling', is_driver: true, active: true },
     ],
-    work_phones: [{ id: W1, phone: '0400 000 001', label: 'Crew phone 1 (Shift 1 / Shift 2 Day)', active: true }],
+    work_phones: [
+      { id: W1, phone: '0400 000 001', label: 'Crew phone 1 (Shift 1 / Shift 2 Day)', active: true },
+      { id: W2, phone: '0400 000 002', label: 'Crew phone 2 (Night)', active: true },
+    ],
     phone_assignments: [
       { id: 'pa1', work_phone_id: W1, person_id: P1 },
       { id: 'pa2', work_phone_id: W1, person_id: P2 },
+      { id: 'pa3', work_phone_id: W2, person_id: P3 },
     ],
     trucks: [
       { id: T4, unit_no: '04', rego: 'XB80KB', truck_type: 'Prime mover', ownership: 'Owned', qr_value: 'COHO-TRUCK-04', tracker_system: 'MyGeotab', status: 'In use', active: true },
@@ -73,7 +79,7 @@ export function demoSeed(): Record<string, Row[]> {
         start_at: at(y, 18, 30), end_at: at(0, 1), fuel_l: 85, km: 65, created_by: DRIVER_USER, extras: {} },
       { id: 'd2', docket_no: 100002, form_type: 'daily_report_workover', work_date: dateOnly(y), truck_id: T4, assigned_person_ids: [P1], version: 1, status: 'closed', shift_id: 's1', job_id: J2, customer_id: C2, location_id: L2, department: 'Completions', project_no: 'P-2002', task_no: 'T-07', po: 'PO-7702',
         start_at: at(0, 1, 30), end_at: at(0, 5, 30), standby_minutes: 30, standby_reason: 'Waiting on rig', fuel_l: 60, km: 50, created_by: DRIVER_USER, extras: {} },
-      { id: 'd3', docket_no: 100003, form_type: 'landspray_runsheet', work_date: dateOnly(0), truck_id: T87, assigned_person_ids: [P1], version: 1, status: 'draft',
+      { id: 'd3', docket_no: 100003, form_type: 'landspray_runsheet', work_date: dateOnly(0), truck_id: T87, assigned_person_ids: [P1], assigned_phone_id: W1, assigned_at: at(0, 5), version: 1, status: 'draft',
         customer_id: C2, location_id: L2, department: 'Landspray', po: 'November - JR', notes: 'Cleaning out MMP4 mud tanks. Note Westrex docket numbers.',
         created_by: 'demo-office@demo.local', extras: { shift_band: '6am - 6pm DAY Shift', truck_email: 'unit87@coho-resources.com', well: 'ENS 968 Scotia 78 - PL1088 - EPPG03515915', well_section: 'Other' } },
     ],
@@ -121,6 +127,7 @@ export function demoSeed(): Record<string, Row[]> {
       { id: 'i9', system: 'Jotform', purpose: 'Existing forms during transition', direction: 'In', api_status: 'Published API', stand_in: 'Replaced by dockets in the app', sort_order: 9 },
     ],
     audit_log: [],
+    sms_outbox: [],
     app_settings: [
       { id: 'timesheet_week_start', value: 3, description: 'Day timesheet weeks start on: 0 Sunday ... 3 Wednesday ... 6 Saturday' },
       { id: 'timesheet_default_view', value: 'fortnight', description: 'Timesheet and approvals open showing a fortnight or a week' },

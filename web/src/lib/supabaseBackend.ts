@@ -93,6 +93,14 @@ export class SupabaseBackend implements Backend {
     ch.subscribe();
     return () => { this.sb.removeChannel(ch); };
   }
+  async kickTexts() {
+    await this.sb.functions.invoke('docket-sms', { body: {} }).catch(() => null);
+  }
+  async myReviewDepartments() {
+    const { data, error } = await this.sb.rpc('my_review_departments');
+    if (error) throw error;
+    return (data as string[]) ?? [];
+  }
   async runSelect(sql: string) {
     const { data, error } = await this.sb.rpc('run_select', { q: sql });
     if (error) throw error;

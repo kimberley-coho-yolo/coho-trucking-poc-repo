@@ -37,11 +37,11 @@ test('admin can add a login with a mobile and a role', async ({ page }) => {
   await page.click('button:has-text("Sign in")');
   await page.goto('?demo=1#/admin/app_logins');
   await page.click('button:has-text("New")');
-  await page.fill('#f-label', 'Crew phone 2');
-  await page.fill('#f-phone', '0400 000 002');
+  await page.fill('#f-label', 'Crew phone 9');
+  await page.fill('#f-phone', '0400 000 009');
   await page.selectOption('#f-role', 'driver');
   await page.click('.subform >> text=Save');
-  await expect(page.locator('td:has-text("Crew phone 2")')).toBeVisible();
+  await expect(page.locator('td:has-text("Crew phone 9")')).toBeVisible();
 });
 
 test('supervisor sees timesheets grouped by driver and approves all for one driver only', async ({ page }) => {
@@ -81,6 +81,7 @@ test('office creates a docket from a form, assigns a driver, and the driver sees
   await page.click('button:has-text("New docket")');
   await page.click('.form-option:has-text("Drilling / CCC daily report")');
   await page.selectOption('.subform #f-truck_id', { label: 'Unit 87 XB28PZ' });
+  await page.selectOption('#assign-phone', '55555555-0000-0000-0000-000000000001');
   await page.click('.chip-toggle:has-text("Sam Driver")');
   await page.click('button:has-text("Create docket")');
   await expect(page.locator('h1')).toHaveText('Drilling / CCC daily report');
@@ -276,9 +277,11 @@ test('a timesheet not sent is flagged to the driver; supervisors pick week, fort
   await row.locator('select').nth(0).selectOption('On shift');
   await row.locator('input[type=number]').fill('10');
   await page.click('.savebar >> text=Save');
+  await expect(page.locator('.toast')).toContainText('Saved');
+  await page.reload();                                                              // the reminder works out what is unsent on load
   // the demo already has a day the supervisor sent back to Sam, so that shows first, then the unsent fortnight
   await expect(page.locator('.ts-reminder')).toContainText('sent back');
-  await expect(page.locator('.ts-reminder')).toContainText('+1 more');
+  await expect(page.locator('.ts-reminder')).toContainText('+1 more', { timeout: 10_000 });
   await page.click('.ts-reminder >> text=Fix and send');
   await expect(page.locator('table.fortnight')).toBeVisible();
   // week view
@@ -298,4 +301,67 @@ test('a timesheet not sent is flagged to the driver; supervisors pick week, fort
   await page.click('.approval-range >> text=Last 7 days');
   await page.click('.approval-range .seg >> text=Week');
   await expect(page.locator('.approval-range')).toContainText('This week');
+});
+
+test('roster: office assigns a docket to a crew phone, reassigns and cancels; the driver completes it; the supervisor reviews it', async ({ page }) => {
+  await page.goto('?demo=1#/login');
+  await page.evaluate(() => localStorage.clear());
+  await signInEmail(page, 'office@demo.local');
+  await page.click('nav >> text=Roster');
+  // + in today's cell for Crew phone 2
+  await page.locator('table.roster tbody tr:has-text("Crew phone 2") td.today button.roster-add').click();
+  await expect(page.locator('#assign-phone')).toHaveValue('55555555-0000-0000-0000-000000000002');
+  await page.click('.form-option:has-text("Drilling / CCC daily report")');
+  await page.selectOption('.subform #f-department', 'Drilling');
+  await page.click('button:has-text("Create docket")');
+  await expect(page.locator('.assign-now')).toContainText('Crew phone 2');
+  const texts = () => page.evaluate(() => JSON.parse(localStorage.getItem('coho-poc-demo-db-v1')!).sms_outbox.map((m: any) => `${m.kind} ${m.phone}`));
+  expect(await texts()).toEqual(['docket_assigned 0400 000 002']);
+
+  // reassign to crew phone 1, then cancel
+  await page.click('button:has-text("Docket reassignment")');
+  await page.selectOption('#assign-phone', '55555555-0000-0000-0000-000000000001');
+  await page.click('button:has-text("Reassign and text the crew")');
+  await expect(page.locator('.assign-now')).toContainText('Crew phone 1');
+  expect(await texts()).toContain('docket_moved 0400 000 002');
+  page.once('dialog', d => d.accept());
+  await page.click('button:has-text("Cancel docket assignment")');
+  await expect(page.locator('.assign-now')).toContainText('Not assigned');
+  expect(await texts()).toContain('docket_cancelled 0400 000 001');
+  // assign it back to crew phone 2 for Jo
+  await page.click('button:has-text("Assign docket")');
+  await page.selectOption('#assign-phone', '55555555-0000-0000-0000-000000000002');
+  await page.click('.chip-toggle:has-text("Jo Cover")');
+  await page.click('button:has-text("Assign and text the crew")');
+  await expect(page.locator('.assign-now')).toContainText('Jo Cover');
+  // times are 24-hour
+  await expect(page.locator('#f-start_at-time')).toHaveAttribute('placeholder', 'HH:MM');
+  const docketNo = (await page.locator('.docket-meta').innerText()).match(/Docket No\.\s*(\d+)/)![1];
+
+  // Jo on crew phone 2: jobs for today, completes it
+  await page.click('nav >> text=Sign out');
+  await page.fill('#login-target', '0400 000 002');
+  await page.click('text=Send code');
+  await page.fill('#login-code', '123456');
+  await page.click('button:has-text("Sign in")');
+  await page.click('button:has-text("Jo Cover")');
+  await page.click("text=Yes, that's me");
+  await expect(page.locator('.jobs-today')).toContainText(`No. ${docketNo}`);
+  await page.click(`.jobs-today button:has-text("No. ${docketNo}")`);
+  await expect(page.locator('button:has-text("Docket reassignment")')).toHaveCount(0);   // drivers cannot reassign
+  await page.fill('#f-start_at', new Date().toISOString().slice(0, 10));
+  await page.fill('#f-start_at-time', '0600');
+  await page.locator('#f-start_at-time').blur();
+  await expect(page.locator('#f-start_at-time')).toHaveValue('06:00');
+  await page.click('.savebar >> text=Close docket');
+  await expect(page.locator('.toast')).toContainText('Docket closed');
+
+  // supervisor: dockets to review, returns it with a comment
+  await page.click('nav >> text=Sign out');
+  await signInEmail(page, 'supervisor@demo.local');
+  await expect(page.locator('.assigned-status')).toContainText('Dockets to review');
+  await page.click(`.assigned-status button:has-text("No. ${docketNo}")`);
+  await page.fill('.review-box textarea', 'Add the load volumes');
+  await page.click('button:has-text("Return to driver")');
+  await expect(page.locator('.note[role=alert]')).toContainText('Add the load volumes');
 });

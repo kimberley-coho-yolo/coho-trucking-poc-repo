@@ -4,6 +4,7 @@ import { backend, type Row } from '../lib/backend';
 import { FORMS, formFor, sortRows } from '../lib/docketForms';
 import { EditOnly, fmt, Page, refLabel, useRows, useToast } from '../components/ui';
 import { ClonePanel, NewDocketPanel } from '../components/docket';
+import { phoneLabel, STAGE_LABEL, stageOf } from '../lib/assignment';
 
 // Office, supervisors and admin: every docket in one list. New, clone, open to edit.
 export default function Dockets() {
@@ -14,6 +15,7 @@ export default function Dockets() {
   const [creating, setCreating] = useState(params.get('new') === '1');
   const [cloneOf, setCloneOf] = useState<{ src: Row; rows: Row[] } | null>(null);
   const [f, setF] = useState({ q: '', form: '', status: 'not closed', from: '', to: '' });
+  const phones = useRows('work_phones');
   const people = useRows('people'); const trucks = useRows('trucks'); const customers = useRows('customers'); const locations = useRows('locations');
 
   const load = useCallback(async () => setAll(await backend().list('dockets', {}, { column: 'updated_at', ascending: false })), []);
@@ -29,7 +31,8 @@ export default function Dockets() {
   const shown = useMemo(() => all.filter(d => {
     if (f.form && (d.form_type ?? 'general') !== f.form) return false;
     if (f.status === 'not closed' && d.status === 'closed') return false;
-    if (f.status && f.status !== 'not closed' && (d.status ?? 'draft') !== f.status) return false;
+    if (f.status === 'to_review') return d.review_status === 'to_review';
+    if (f.status && f.status !== 'not closed' && f.status !== 'to_review' && (d.status ?? 'draft') !== f.status) return false;
     const day = d.work_date ?? String(d.start_at ?? d.created_at ?? '').slice(0, 10);
     if (f.from && day < f.from) return false;
     if (f.to && day > f.to) return false;
@@ -67,23 +70,23 @@ export default function Dockets() {
             {FORMS.map(x => <option key={x.code} value={x.code}>{x.label}</option>)}</select></label>
         <label className="field"><span className="field-label">Status</span>
           <select value={f.status} onChange={e => setF({ ...f, status: e.target.value })}>
-            <option value="not closed">Not closed</option><option value="">All</option><option value="draft">Draft</option><option value="open">Open</option><option value="closed">Closed</option></select></label>
+            <option value="not closed">Not closed</option><option value="">All</option><option value="draft">Draft</option><option value="open">Open</option><option value="closed">Closed</option><option value="to_review">Completed, to review</option></select></label>
         <label className="field"><span className="field-label">From</span><input type="date" value={f.from} onChange={e => setF({ ...f, from: e.target.value })} /></label>
         <label className="field"><span className="field-label">To</span><input type="date" value={f.to} onChange={e => setF({ ...f, to: e.target.value })} /></label>
       </div>
 
       <div className="table-wrap"><table className="dockets-table">
-        <thead><tr><th>No.</th><th>Form</th><th>Date</th><th>Truck</th><th>Drivers</th><th>Customer</th><th>Rig</th><th>Status</th><th>Last change</th><th /></tr></thead>
+        <thead><tr><th>No.</th><th>Form</th><th>Date</th><th>Truck</th><th>Crew phone</th><th>Drivers</th><th>Customer</th><th>Rig</th><th>Status</th><th>Last change</th><th /></tr></thead>
         <tbody>
           {shown.map(d => <tr key={d.id}>
             <td>{d.docket_no ?? '-'}</td><td>{formFor(d.form_type).label}</td><td>{d.work_date ?? String(d.start_at ?? '').slice(0, 10)}</td>
-            <td>{refLabel('trucks', trucks, d.truck_id) || '-'}</td><td>{names(d.assigned_person_ids) || <span className="muted">none</span>}</td>
+            <td>{refLabel('trucks', trucks, d.truck_id) || '-'}</td><td>{phoneLabel(phones.find(w => w.id === d.assigned_phone_id)) || <span className="muted">not assigned</span>}</td><td>{names(d.assigned_person_ids) || <span className="muted">-</span>}</td>
             <td>{refLabel('customers', customers, d.customer_id) || '-'}</td><td>{refLabel('locations', locations, d.location_id) || '-'}</td>
-            <td><span className={'pill ' + (d.status ?? 'draft')}>{d.status ?? 'draft'}</span></td><td>{fmt(d.updated_at ?? d.created_at)}</td>
+            <td><span className={'pill stage-' + stageOf(d)}>{STAGE_LABEL[stageOf(d)]}</span></td><td>{fmt(d.updated_at ?? d.created_at)}</td>
             <td className="row nowrap"><button className="small" onClick={() => nav('/docket/' + d.id)}>Open</button>
               <EditOnly><button className="small" onClick={() => startClone(d)}>Clone</button></EditOnly></td>
           </tr>)}
-          {!shown.length && <tr><td colSpan={10} className="muted">No dockets match</td></tr>}
+          {!shown.length && <tr><td colSpan={11} className="muted">No dockets match</td></tr>}
         </tbody>
       </table></div>
       <p className="muted">{shown.length} of {all.length} dockets</p>
