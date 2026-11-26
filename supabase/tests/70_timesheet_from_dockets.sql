@@ -41,17 +41,19 @@ values ('99999999-0000-0000-0000-000000000002', 'daily_report_drilling', 'closed
           "s2_operator_id":"44444444-0000-0000-0000-000000000003","s2_band":"18:00 to 06:00","s2_standby_hours":12}');
 reset role;
 select pg_temp.check((select total_hours = 12 and with_dog and shift_band = '06:00 to 18:00' from public.timesheet_lines where person_id = '44444444-0000-0000-0000-000000000002' and work_date = '2026-11-19'), 'shift 1 operator: 12 hours, truck and dog');
-select pg_temp.check((select total_hours = 12 and standby_hours = 12 and shift_band = '18:00 to 06:00' from public.timesheet_lines where person_id = '44444444-0000-0000-0000-000000000003' and work_date = '2026-11-19'), 'shift 2 operator: 12 hours with standby');
+select pg_temp.check((select total_hours = 6 and standby_hours = 12 and shift_band = '18:00 to 06:00' from public.timesheet_lines where person_id = '44444444-0000-0000-0000-000000000003' and work_date = '2026-11-19'), 'shift 2 operator (night): 6 hours on the day it starts, with standby');
+select pg_temp.check((select total_hours = 6 and standby_hours is null from public.timesheet_lines where person_id = '44444444-0000-0000-0000-000000000003' and work_date = '2026-11-20'), 'and 6 hours on the next day');
 
 -- the office moves shift 2 to Sam: Jo's untouched line goes, Sam now has both shifts' dockets counted
 update public.dockets set extras = extras || '{"s2_operator_id":"44444444-0000-0000-0000-000000000002"}' where id = '99999999-0000-0000-0000-000000000002';
 select pg_temp.check((select count(*) from public.timesheet_lines where person_id = '44444444-0000-0000-0000-000000000003' and work_date = '2026-11-19') = 0, 'reassigning removes the old driver''s untouched line');
-select pg_temp.check((select total_hours from public.timesheet_lines where person_id = '44444444-0000-0000-0000-000000000002' and work_date = '2026-11-19') = 24, 'and adds the hours to the new driver');
+select pg_temp.check((select total_hours from public.timesheet_lines where person_id = '44444444-0000-0000-0000-000000000002' and work_date = '2026-11-19') = 18, 'and adds the hours to the new driver (12 day + 6 of the night)');
+select pg_temp.check((select count(*) from public.timesheet_lines where person_id = '44444444-0000-0000-0000-000000000003' and work_date = '2026-11-20') = 0, 'the old driver''s next-day line goes too');
 
 -- a submitted line is never changed by later docket edits
 update public.timesheet_lines set status = 'submitted' where person_id = '44444444-0000-0000-0000-000000000002' and work_date = '2026-11-19';
 update public.dockets set extras = extras - 's2_operator_id' where id = '99999999-0000-0000-0000-000000000002';
-select pg_temp.check((select total_hours from public.timesheet_lines where person_id = '44444444-0000-0000-0000-000000000002' and work_date = '2026-11-19') = 24, 'submitted lines are left alone');
+select pg_temp.check((select total_hours from public.timesheet_lines where person_id = '44444444-0000-0000-0000-000000000002' and work_date = '2026-11-19') = 18, 'submitted lines are left alone');
 
 -- a bad value in the form JSON never stops the docket saving
 update public.dockets set extras = extras || '{"s1_operator_id":"not-a-uuid"}' where id = '99999999-0000-0000-0000-000000000002';

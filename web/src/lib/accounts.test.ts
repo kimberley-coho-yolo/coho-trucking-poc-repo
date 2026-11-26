@@ -61,16 +61,16 @@ describe('accounts reports', () => {
 
   it('lists timesheets not sent after their due date, per driver and period', () => {
     const ts = [
-      { person_id: 'p1', work_date: '2026-11-12', status: 'draft', total_hours: 12 },
+      { person_id: 'p1', work_date: '2026-11-12', status: 'draft', total_hours: 12 },     // fortnight 9-22 Nov, due Tue 24 Nov 19:00
       { person_id: 'p1', work_date: '2026-11-13', status: 'queried', total_hours: 11 },
       { person_id: 'p2', work_date: '2026-11-12', status: 'submitted', total_hours: 12 },
       { person_id: 'p2', work_date: '2026-11-26', status: 'draft', total_hours: 12 },   // this fortnight: not due yet
     ];
     const rows = overdueTimesheets(ts, people, '2026-11-26 10:00', DEFAULT_PERIOD);
-    expect(rows).toEqual([{ person_id: 'p1', driver: 'Alex Driver', period_start: '2026-11-11', period_end: '2026-11-24', due: '2026-11-25 09:00',
-      days: 2, hours: 23, sent_back: 1, days_overdue: 1 }]);
-    // at 08:00 on the due day it is not overdue yet
-    expect(overdueTimesheets(ts, people, '2026-11-25 08:00', DEFAULT_PERIOD)).toEqual([]);
+    expect(rows).toEqual([{ person_id: 'p1', driver: 'Alex Driver', period_start: '2026-11-09', period_end: '2026-11-22', due: '2026-11-24 19:00',
+      days: 2, hours: 23, sent_back: 1, days_overdue: 2 }]);
+    // at 18:00 on the due Tuesday it is not overdue yet
+    expect(overdueTimesheets(ts, people, '2026-11-24 18:00', DEFAULT_PERIOD)).toEqual([]);
   });
 
   it('compares the timesheets fed by one truck with their dockets', () => {

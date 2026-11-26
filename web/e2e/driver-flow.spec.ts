@@ -149,6 +149,8 @@ test('driver fills in a fortnight timesheet and an expense claim; supervisor app
   // timesheet: two days on shift, truck and dog
   await page.click('button.card:has-text("Driver timesheet")');
   await page.waitForSelector('table.fortnight');
+  // next fortnight has no demo data in it on any date, so the totals below are always just these two days
+  await page.click('button[aria-label="Next fortnight"]');
   const day1 = page.locator('table.fortnight tbody tr').nth(0);
   const day2 = page.locator('table.fortnight tbody tr').nth(1);
   for (const [row, page_no] of [[day1, '508117'], [day2, '508118']] as const) {
@@ -204,6 +206,9 @@ test('driver fills in a fortnight timesheet and an expense claim; supervisor app
   await expect(page.locator('table.fortnight .pill.approved')).toHaveCount(2);
 });
 
+// Run in Queensland time: the demo seed's times are local to the browser, and the timesheet splits days at midnight in Queensland.
+test.describe('in Queensland time', () => {
+test.use({ timezoneId: 'Australia/Brisbane' });
 test('closing a docket fills in the driver timesheet for that day', async ({ page }) => {
   await page.goto('?demo=1#/login');
   await page.evaluate(() => localStorage.clear());
@@ -222,10 +227,12 @@ test('closing a docket fills in the driver timesheet for that day', async ({ pag
   await page.waitForSelector('table.fortnight');
   const today = await page.evaluate(() => { const d = new Date(); return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0'); });
   const row = page.locator(`table.fortnight tbody tr:has-text("${today}")`);
-  await expect(row.locator('input[type=number]')).toHaveValue('12');
+  // today also holds the end of last night's shift (00:00 to 06:00, docket to 01:00): hours stay on the day worked
+  await expect(row.locator('input[type=number]')).toHaveValue('18');                   // 6 h of last night's shift + the 12 h day docket
   await expect(row.locator('select').nth(0)).toHaveValue('On shift');
-  await expect(row.locator('select').nth(1)).toHaveValue('06:00 to 18:00');
-  await expect(row).toContainText('Dockets 12 h');
+  await expect(row.locator('select').nth(1)).toHaveValue('06:00 to 18:00');           // the band with the most hours that day
+  await expect(row).toContainText('Dockets 13 h');                                    // 1 h of last night's docket + 12 h
+});
 });
 
 test('with no signal a driver can still fill in and close a docket; it sends by itself when signal is back', async ({ page, context }) => {
@@ -271,7 +278,7 @@ test('a timesheet not sent is flagged to the driver; supervisors pick week, fort
   // Sam works a day in the previous fortnight but never sends it
   await page.click('nav >> text=Forms');
   await page.click('button.card:has-text("Driver timesheet")');
-  await expect(page.locator('.period-label')).toContainText('Wed');                 // weeks start on Wednesday
+  await expect(page.locator('.period-label')).toContainText('Mon');                 // weeks start on Monday
   await page.click('button[aria-label="Previous fortnight"]');
   const row = page.locator('table.fortnight tbody tr').nth(0);
   await row.locator('select').nth(0).selectOption('On shift');

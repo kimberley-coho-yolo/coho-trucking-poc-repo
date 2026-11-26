@@ -101,12 +101,12 @@ export function linesTotal(lines: Row[] | undefined, field: string): number {
 }
 
 // ---------- timesheet periods ----------
-// Weeks start on a day set by admin in Settings (default Wednesday). Timesheets show a fortnight by default,
+// Weeks start on a day set by admin in Settings (default Monday; pays are done on Wednesday). Timesheets show a fortnight by default,
 // or one week (some supervisors approve a week at a time before handover). Fortnights repeat every 14 days
 // from the cycle anchor, moved to the start day.
 export type PeriodView = 'fortnight' | 'week';
 export interface PeriodSettings { weekStart: number; view: PeriodView; anchor: string }
-export const DEFAULT_PERIOD: PeriodSettings = { weekStart: 3, view: 'fortnight', anchor: '2026-11-11' };
+export const DEFAULT_PERIOD: PeriodSettings = { weekStart: 1, view: 'fortnight', anchor: '2026-11-09' };
 export const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const DAY = 86_400_000;
 const utc = (iso: string) => Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10));
@@ -116,7 +116,7 @@ const dow = (dateIso: string) => new Date(utc(dateIso)).getUTCDay();
 export const addDays = (dateIso: string, n: number) => iso(utc(dateIso) + n * DAY);
 export const weekday = (dateIso: string) => DAY_NAMES[dow(dateIso)];
 export const periodLength = (view: PeriodView) => (view === 'week' ? 7 : 14);
-/** The cycle anchor moved forward to the start day (so Thursday starts work as well as Wednesday). */
+/** The cycle anchor moved forward to the start day (so any start day works, not only Monday). */
 export const anchorFor = (s: PeriodSettings) => addDays(s.anchor, (s.weekStart - dow(s.anchor) + 7) % 7);
 /** First day of the week or fortnight that contains this date. */
 export function periodStart(dateIso: string, s: PeriodSettings = DEFAULT_PERIOD, view: PeriodView = s.view): string {
@@ -127,8 +127,10 @@ export function periodStart(dateIso: string, s: PeriodSettings = DEFAULT_PERIOD,
 }
 export const periodDays = (start: string, view: PeriodView = 'fortnight') => Array.from({ length: periodLength(view) }, (_, i) => addDays(start, i));
 export const periodEnd = (start: string, view: PeriodView = 'fortnight') => addDays(start, periodLength(view) - 1);
-/** Due by 09:00 on the first day of the next period, to be paid in this cycle. */
-export const submitBy = (start: string, view: PeriodView = 'fortnight') => addDays(start, periodLength(view)) + ' 09:00';
+/** Cut-off time for timesheets, on the second day after the period ends (Tuesday when weeks start on Monday). */
+export const DUE_TIME = '19:00';
+/** Due by 19:00 on the second day of the next period (Tuesday 7pm for a Monday week), to be paid in this cycle. */
+export const submitBy = (start: string, view: PeriodView = 'fortnight') => addDays(start, periodLength(view) + 1) + ' ' + DUE_TIME;
 // kept for older links
 export const fortnightStart = (dateIso: string) => periodStart(dateIso, DEFAULT_PERIOD, 'fortnight');
 export const fortnightDays = (start: string) => periodDays(start, 'fortnight');
@@ -165,7 +167,7 @@ export async function shrinkImage(file: File, maxSide = 1280, quality = 0.72): P
 export interface Reminder { kind: 'returned' | 'overdue' | 'due_soon'; start: string; end: string; due: string; days: number }
 /**
  * What to remind a driver about, most urgent first: days sent back by the supervisor,
- * periods that have ended and were not sent (overdue), and the current period when it is due within a day.
+ * periods past their due date that were not sent (overdue), and a period due within a day.
  */
 export function timesheetReminders(lines: { work_date?: string | null; status?: string | null }[], today: string, s: PeriodSettings, view: PeriodView = s.view): Reminder[] {
   const out: Reminder[] = [];
@@ -181,7 +183,7 @@ export function timesheetReminders(lines: { work_date?: string | null; status?: 
   for (const [start, g] of [...byStart.entries()].sort()) {
     const end = periodEnd(start, view); const due = submitBy(start, view);
     if (g.returned) out.push({ kind: 'returned', start, end, due, days: g.returned });
-    if (g.draft && end < today) out.push({ kind: 'overdue', start, end, due, days: g.draft });
+    if (g.draft && due.slice(0, 10) < today) out.push({ kind: 'overdue', start, end, due, days: g.draft });
     else if (g.draft && due.slice(0, 10) <= addDays(today, 1)) out.push({ kind: 'due_soon', start, end, due, days: g.draft });
   }
   const rank = { returned: 0, overdue: 1, due_soon: 2 };

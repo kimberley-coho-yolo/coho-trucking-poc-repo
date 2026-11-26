@@ -47,6 +47,6 @@ function text(r: Reminder) {
   const span = `${nice(r.start)} to ${nice(r.end)}`;
   const days = `${r.days} day${r.days > 1 ? 's' : ''}`;
   if (r.kind === 'returned') return `Your supervisor sent back ${days} of your timesheet (${span}). Fix and send again.`;
-  if (r.kind === 'overdue') return `Timesheet ${span} not sent: ${days}. It was due 09:00 ${nice(r.due.slice(0, 10))}.`;
-  return `Timesheet due 09:00 ${nice(r.due.slice(0, 10))}: ${days} not sent yet.`;
+  if (r.kind === 'overdue') return `Timesheet ${span} not sent: ${days}. It was due ${r.due.slice(11)} ${nice(r.due.slice(0, 10))}.`;
+  return `Timesheet due ${r.due.slice(11)} ${nice(r.due.slice(0, 10))}: ${days} not sent yet.`;
 }

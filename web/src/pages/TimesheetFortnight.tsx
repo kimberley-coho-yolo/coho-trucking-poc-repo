@@ -95,7 +95,7 @@ export default function TimesheetFortnight() {
       <li>Pick <b>On shift</b>, <b>R&R</b> or <b>Not working</b>, the work diary page (or "Nd" if not driving), the shift times, any wet time, hours, unit and rig.</li>
       <li>Tick <b>Truck and dog</b> on days worked with a dog trailer. The totals at the bottom work out truck hours, truck and dog hours and infield days.</li>
       <li>A shift over 24 hours is split across the days it covers and marked <b>24 h+</b>.</li>
-      <li>Sign and tap <b>Send to supervisor</b> before <b>09:00 {weekday(addDays(start, periodLength(view)))} {submitBy(start, view).slice(0, 10)}</b> to be paid in this pay cycle.</li>
+      <li>Sign and tap <b>Send to supervisor</b> before <b>{submitBy(start, view).slice(11)} {weekday(submitBy(start, view).slice(0, 10))} {submitBy(start, view).slice(0, 10)}</b> to be paid in this pay cycle.</li>
     </ol>}>
       <div className="filters">
         {(approver || can.read('all_work') || !person) && <label className="field"><span className="field-label">Driver</span>

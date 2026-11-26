@@ -45,7 +45,7 @@ export default function Forms() {
 
   return (
     <Page title="Forms" howTo={<ol>
-      <li><b>Driver timesheet</b>: your fortnight, one line per day. Send it before 09:00 Monday to be paid this cycle.</li>
+      <li><b>Driver timesheet</b>: your fortnight, one line per day. Send it before 19:00 Tuesday to be paid this cycle.</li>
       <li><b>Expense reimbursement</b>: add each item and a photo of each receipt.</li>
       <li><b>Land pre-inspection and fire risk</b>: the compliance checklist before land preparation and spraying.</li>
       <li>Everything saves as a draft until you sign and send it. {approver ? 'Forms sent to you are under Waiting for approval.' : 'Your supervisor approves it.'}</li>

@@ -6,7 +6,7 @@ import { allowedLevels, effectiveAccess, FEATURES, type Access, type Feature } f
 import { TABLES } from '../lib/schema';
 import { EditOnly, errText, FieldGrid, Page, useReadOnly, useToast } from '../components/ui';
 import { useApp } from '../state';
-import { DAY_NAMES, periodEnd, periodStart, type PeriodView } from '../lib/forms';
+import { DAY_NAMES, DUE_TIME, periodEnd, periodStart, submitBy, weekday, type PeriodView } from '../lib/forms';
 import { periodSettingsFrom, reloadAppSettings } from '../lib/appSettings';
 import { todayIso } from '../components/ui';
 
@@ -201,7 +201,7 @@ function TimesheetSettings() {
   const toast = useToast();
   const readOnly = useReadOnly();
   const [rows, setRows] = useState<Row[]>([]);
-  const [ws, setWs] = useState(3);
+  const [ws, setWs] = useState(1);
   const [view, setView] = useState<PeriodView>('fortnight');
   useEffect(() => { backend().list('app_settings').then(r => { setRows(r); const p = periodSettingsFrom(r); setWs(p.weekStart); setView(p.view); }).catch(() => null); }, []);
   const p = periodSettingsFrom(rows);
@@ -224,13 +224,13 @@ function TimesheetSettings() {
         <label className="field"><span className="field-label">Weeks start on</span>
           <select value={ws} disabled={readOnly} onChange={e => setWs(Number(e.target.value))}>
             {DAY_NAMES.map((d, i) => <option key={d} value={i}>{d}</option>)}</select>
-          <small className="help">Timesheets and approvals run from this day, e.g. Wednesday to Tuesday.</small></label>
+          <small className="help">Timesheets and approvals run from this day, e.g. Monday to Sunday.</small></label>
         <label className="field"><span className="field-label">Timesheets open as</span>
           <select value={view} disabled={readOnly} onChange={e => setView(e.target.value as PeriodView)}>
             <option value="fortnight">Fortnight (14 days)</option><option value="week">Week (7 days)</option></select>
           <small className="help">Anyone can still switch between week and fortnight on the screen.</small></label>
       </div>
-      <p className="muted">Today falls in the {view} {start} ({DAY_NAMES[ws]}) to {periodEnd(start, view)}. Due by 09:00 the next {DAY_NAMES[ws]}.</p>
+      <p className="muted">Today falls in the {view} {start} ({DAY_NAMES[ws]}) to {periodEnd(start, view)}. Due by {DUE_TIME} {weekday(submitBy(start, view).slice(0, 10))} {submitBy(start, view).slice(0, 10)}.</p>
       <EditOnly><button className="primary" onClick={save}>Save timesheet settings</button></EditOnly>
       {toast.node}
     </section>

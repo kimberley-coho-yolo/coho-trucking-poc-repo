@@ -18,7 +18,7 @@ export interface OverdueRow {
 }
 /**
  * Timesheet days not sent (draft) or sent back (queried) whose period was due before now.
- * "now" is local "YYYY-MM-DD HH:MM"; a period is due at 09:00 the day after it ends.
+ * "now" is local "YYYY-MM-DD HH:MM"; a period is due at 19:00 on the second day after it ends.
  */
 export function overdueTimesheets(lines: Row[], people: Row[], now: string, ps: PeriodSettings): OverdueRow[] {
   const groups = new Map<string, OverdueRow>();
@@ -53,7 +53,14 @@ export function docketLines(dockets: Row[], loads: Row[], lk: Lookups): DocketLi
   const out: DocketLine[] = [];
   for (const d of dockets) {
     const shift = byId(lk.shifts, d.shift_id);
-    const entries = docketEntries(d, shift);
+    // one line per driver per docket: hours split across days (night shifts) are added back together here
+    const entries: { person_id: string | null; hours: number | null; standby: number | null; truck_id: string | null }[] = [];
+    for (const e of docketEntries(d, shift)) {
+      const same = entries.find(x => x.person_id === e.person_id && x.truck_id === e.truck_id);
+      if (!same) { entries.push({ person_id: e.person_id, hours: e.hours, standby: e.standby, truck_id: e.truck_id }); continue; }
+      if (e.hours != null) same.hours = (same.hours ?? 0) + e.hours;
+      if (e.standby != null) same.standby = (same.standby ?? 0) + e.standby;
+    }
     const ls = loadsBy.get(d.id) ?? [];
     const base = {
       docket_id: d.id, docket_no: d.docket_no ?? null, date: docketDay(d, shift), form: formFor(d.form_type).label, department: d.department ?? '',

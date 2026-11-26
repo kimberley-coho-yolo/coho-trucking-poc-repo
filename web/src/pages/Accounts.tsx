@@ -31,7 +31,7 @@ export default function Accounts() {
 
   return (
     <Page title="Accounts" howTo={<ol>
-      <li><b>Overdue timesheets</b>: days not sent, or sent back, after the period's due time (09:00 the day after the period ends).</li>
+      <li><b>Overdue timesheets</b>: days not sent, or sent back, after the period's due time (19:00 on the Tuesday after the period ends).</li>
       <li><b>Docket totals</b>: totals per customer, asset (truck), user (driver) or status. Filter by date, customer, truck, driver, department, form, status or any text. Tap a total to list its dockets.</li>
       <li><b>Timesheets vs dockets</b>: pick a truck (for example a water truck) or a driver and dates. Each line is one driver and day: the timesheet's docket hours against what that day's dockets add up to.</li>
       <li>Hours are driver hours: a two-shift report counts 12 hours for each operator. Loads and litres are counted once per docket.</li>

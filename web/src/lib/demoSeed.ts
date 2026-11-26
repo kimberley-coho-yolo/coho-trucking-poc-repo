@@ -130,9 +130,9 @@ export function demoSeed(): Record<string, Row[]> {
     audit_log: [],
     sms_outbox: [],
     app_settings: [
-      { id: 'timesheet_week_start', value: 3, description: 'Day timesheet weeks start on: 0 Sunday ... 3 Wednesday ... 6 Saturday' },
+      { id: 'timesheet_week_start', value: 1, description: 'Day timesheet weeks start on: 0 Sunday, 1 Monday ... 6 Saturday' },
       { id: 'timesheet_default_view', value: 'fortnight', description: 'Timesheet and approvals open showing a fortnight or a week' },
-      { id: 'timesheet_cycle_anchor', value: '2026-11-11', description: 'Any first day of a pay fortnight' },
+      { id: 'timesheet_cycle_anchor', value: '2026-11-09', description: 'Any first day of a pay fortnight' },
     ],
     ...demoSettings(),
   };

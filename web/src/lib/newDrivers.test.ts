@@ -29,7 +29,7 @@ describe('new drivers', () => {
   });
   it('reports each week: how many were added, approved, paired or waiting, by whom and when', () => {
     const weeks = newDriverReport(people, [{ id: 'w1', phone: '0400 000 001' }], DEFAULT_PERIOD);
-    expect(weeks.map(w => [w.week_start, w.added, w.approved, w.paired, w.waiting])).toEqual([['2026-11-25', 2, 0, 1, 1], ['2026-11-18', 1, 1, 0, 0]]);
+    expect(weeks.map(w => [w.week_start, w.added, w.approved, w.paired, w.waiting])).toEqual([['2026-11-23', 2, 0, 1, 1], ['2026-11-16', 1, 1, 0, 0]]);
     expect(weeks[1].rows[0]).toMatchObject({ name: 'Kim Quinlan', crew_phone: '0400 000 001', outcome_label: 'Approved as a new driver', checked_by: 'Pay office' });
     expect(weeks[0].rows.find(r => r.name === 'Jo Smith')).toMatchObject({ outcome_label: 'Hours paired to Sam Driver', checked_by: 'Demo supervisor' });
   });

@@ -330,7 +330,9 @@ export class DemoBackend implements Backend {
     const entries = this.t('dockets').flatMap(d => docketEntries(d, shiftOf(d.shift_id))).filter(e => e.person_id === person && e.day === day);
     const lines = this.t('timesheet_lines');
     const existing = lines.filter(l => l.person_id === person && l.work_date === day && !l.clash_with).sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)))[0];   // clash lines are left for the approver
-    const plan = planDay(entries, existing, id => shiftOf(id), id => this.t('locations').find(l => l.id === id)?.name, person, day);
+    const dockets = this.t('dockets');
+    const carried = this.t('shifts').filter(x => x.driver_id === person && dockets.some(d => d.shift_id === x.id));   // shifts that may run past midnight into this day
+    const plan = planDay(entries, existing, id => shiftOf(id), id => this.t('locations').find(l => l.id === id)?.name, person, day, carried);
     if (plan === 'delete') { lines.splice(lines.indexOf(existing!), 1); this.emit('timesheet_lines', existing!); return; }
     if (!plan) return;
     const now = new Date().toISOString();
