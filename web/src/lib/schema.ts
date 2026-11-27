@@ -44,7 +44,7 @@ export const TABLES: Record<TableName, TableDef> = {
       { name: 'label', label: 'Label', type: 'text', help: 'A name for this login, e.g. "Crew phone 1" or a person' },
       { name: 'email', label: 'Email', type: 'email', help: 'Sign in with a code sent to this email' },
       { name: 'phone', label: 'Mobile', type: 'phone', help: 'Sign in with a code texted to this mobile. Any format, e.g. 0400 000 001' },
-      { name: 'role', label: 'Role', type: 'select', options: ROLES, optionsFrom: { table: 'roles', value: 'code', label: 'label' }, help: 'Roles and what each can see are set in Settings (admin only)' },
+      { name: 'role', label: 'Role', type: 'select', options: ROLES, optionsFrom: { table: 'roles', value: 'code', label: 'label' }, help: 'Roles and what each can see are set in Settings (system admin (SYS.ADM) only)' },
       { name: 'person_id', label: 'Person (optional)', type: 'ref', ref: 'people' },
       { name: 'departments', label: 'Reviews dockets for', type: 'multi', options: DEPARTMENTS, help: 'Supervisors: which departments\' completed dockets come to them. None ticked = all departments', hideInTable: true },
       { name: 'active', label: 'Active', type: 'bool' },

@@ -35,20 +35,20 @@ export const FEATURES: Feature[] = [
   { code: 'data_transfer', label: 'Upload and download spreadsheets', grp: 'Data', description: 'Read only: download and browse tables. Edit: upload spreadsheets too.', max_level: 'edit', admin_only_edit: false, sort: 120 },
   { code: 'integration_data', label: 'GPS trips, prestart records and km matching', grp: 'Data', description: 'Integration stand-in data. Edit: upload and run km matching.', max_level: 'edit', admin_only_edit: false, sort: 130 },
   { code: 'query', label: 'Query console (SQL)', grp: 'Data', description: 'Read-only SQL queries. Results still respect these access settings.', max_level: 'read', admin_only_edit: false, sort: 140 },
-  { code: 'integrations', label: 'Integrations', grp: 'Admin only', description: 'The list of systems to connect and their settings. Only admin can add or edit.', max_level: 'edit', admin_only_edit: true, sort: 150 },
-  { code: 'logins', label: 'Logins and roles', grp: 'Admin only', description: 'Who can sign in (email or mobile) and which role they have. Only admin can edit.', max_level: 'edit', admin_only_edit: true, sort: 160 },
-  { code: 'settings', label: 'Settings: roles and access', grp: 'Admin only', description: 'This screen. Only admin can change it.', max_level: 'edit', admin_only_edit: true, sort: 170 },
-  { code: 'audit', label: 'Audit log and text message log', grp: 'Admin only', description: 'History of changes and sign-in texts.', max_level: 'read', admin_only_edit: false, sort: 180 },
+  { code: 'integrations', label: 'Integrations', grp: 'System admin (SYS.ADM) only', description: 'The list of systems to connect and their settings. Only system admin (SYS.ADM) can add or edit.', max_level: 'edit', admin_only_edit: true, sort: 150 },
+  { code: 'logins', label: 'Logins and roles', grp: 'System admin (SYS.ADM) only', description: 'Who can sign in (email or mobile) and which role they have. Only system admin (SYS.ADM) can edit.', max_level: 'edit', admin_only_edit: true, sort: 160 },
+  { code: 'settings', label: 'Settings: roles and access', grp: 'System admin (SYS.ADM) only', description: 'This screen. Only system admin (SYS.ADM) can change it.', max_level: 'edit', admin_only_edit: true, sort: 170 },
+  { code: 'audit', label: 'Audit log and text message log', grp: 'System admin (SYS.ADM) only', description: 'History of changes and sign-in texts.', max_level: 'read', admin_only_edit: false, sort: 180 },
   { code: 'help', label: 'Help', grp: 'General', description: 'How-to pages.', max_level: 'read', admin_only_edit: false, sort: 190 },
 ];
 
 export const SYSTEM_ROLES = [
-  { code: 'admin', label: 'Admin', description: 'Full access, including settings, logins and integrations. Cannot be restricted.', rank: 1 },
+  { code: 'admin', label: 'System admin (SYS.ADM)', description: 'System administrator: full access to everything, including settings, logins, roles and integrations. Cannot be restricted.', rank: 1 },
   { code: 'office', label: 'Office', description: 'Sets up people, trucks, customers and jobs; uploads and downloads data.', rank: 20 },
   { code: 'accounts', label: 'Accounts', description: 'Payroll and invoicing. Same as Office, plus the Accounts reports.', rank: 25 },
   { code: 'supervisor', label: 'Supervisor', description: "Sees all crews' work, approves timesheets, views reports.", rank: 30 },
   { code: 'driver', label: 'Driver', description: 'The basics: shifts, prestart, dockets, faults and their own drafts.', rank: 90 },
-  { code: 'undetermined', label: 'Undetermined', description: 'New user waiting for an admin to choose their role. Sees nothing until the role is changed.', rank: 95 },
+  { code: 'undetermined', label: 'Undetermined', description: 'New user waiting for a system admin (SYS.ADM) to choose their role. Sees nothing until the role is changed.', rank: 95 },
 ];
 
 /** Starting access for the built-in roles (same rules as the database migration). */

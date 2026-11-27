@@ -21,15 +21,15 @@ export default function Home() {
   if (!role) return (
     <Page title="No access yet">
       <p>You are signed in as <b>{session?.email ?? session?.phone}</b> but this login has no role.</p>
-      <p>Ask an admin to add you under <b>Admin &gt; Logins and roles</b>. If this is a brand-new system with no admin yet, you can become the first admin.</p>
-      <button onClick={async () => { try { setMsg(await backend().claimFirstAdmin()); await refresh(); } catch (e) { setMsg(errText(e)); } }}>Make me the first admin</button>
+      <p>Ask a system admin (SYS.ADM) to add you under <b>Admin &gt; Logins and roles</b>. If this is a brand-new system with no system admin (SYS.ADM) yet, you can become the first one.</p>
+      <button onClick={async () => { try { setMsg(await backend().claimFirstAdmin()); await refresh(); } catch (e) { setMsg(errText(e)); } }}>Make me the first system admin (SYS.ADM)</button>
       {msg && <p className="note">{msg}</p>}
     </Page>
   );
 
   if (role === 'undetermined') return (
     <Page title={person ? `Hi ${person.full_name.split(' ')[0]}` : 'Waiting for a role'}>
-      <p>You are signed in as <b>{person?.full_name ?? session?.email ?? session?.phone}</b>. Your login has been added but an admin has not chosen your role yet.</p>
+      <p>You are signed in as <b>{person?.full_name ?? session?.email ?? session?.phone}</b>. Your login has been added but a system admin (SYS.ADM) has not chosen your role yet.</p>
       <p className="muted">Once your role is set (Admin &gt; Logins and roles), sign out and sign in again, or refresh this page.</p>
       <button onClick={() => refresh()}>Check again</button>
     </Page>
@@ -42,7 +42,7 @@ export default function Home() {
         <li>Open shifts are listed below. Tap <b>Open</b> to carry on.</li>
         {can.read('approvals') && <li>Approve timesheets under <b>Approvals</b>. Reports show hours and km per customer, rig and truck.</li>}
         {ADMIN_FEATURES.some(can.read) && <li>Set up people, phones, trucks, customers and jobs under <b>Admin</b>; upload spreadsheets and export data under <b>Data</b>.</li>}
-        <li>What you can see depends on your role. Admins set this in <b>Settings</b>.</li>
+        <li>What you can see depends on your role. The system admin (SYS.ADM) sets this in <b>Settings</b>.</li>
       </ol>}>
       {!!person && <JobsToday />}
       <div className="cards">

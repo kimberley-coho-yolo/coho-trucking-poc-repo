@@ -59,15 +59,15 @@ export default function Login() {
       {msg && <p className="note">{msg}</p>}
       <hr />
       {demo
-        ? <p className="muted">You are in <b>demo mode</b>: data stays in this browser. Try <b>0400 000 001</b> (driver), or <b>admin@demo.local</b>, <b>office@demo.local</b>, <b>supervisor@demo.local</b>. Code 123456.
+        ? <p className="muted">You are in <b>demo mode</b>: data stays in this browser. Try <b>0400 000 001</b> (driver), or <b>admin@demo.local</b> (system admin), <b>office@demo.local</b>, <b>supervisor@demo.local</b>. Code 123456.
             {import.meta.env.VITE_SUPABASE_URL && <> <button className="link" onClick={() => switchMode(false)}>Use the live database</button></>}</p>
         : <p className="muted">Connected to the live database. <button className="link" onClick={() => switchMode(true)}>Try demo mode instead</button></p>}
       <HowTo>
         <ol>
           <li>Drivers: choose <b>Work mobile</b>, type the truck crew phone number and press <b>Send code</b>.</li>
           <li>Type the 6-digit code from the text message and press <b>Sign in</b>.</li>
-          <li>Office, supervisors and admin can use <b>Email</b> instead.</li>
-          <li>If you see "no access" after signing in, ask an admin to add your mobile or email under Admin &gt; Logins and roles.</li>
+          <li>Office, supervisors and system admin (SYS.ADM) can use <b>Email</b> instead.</li>
+          <li>If you see "no access" after signing in, ask a system admin (SYS.ADM) to add your mobile or email under Admin &gt; Logins and roles.</li>
         </ol>
       </HowTo>
     </section>

@@ -25,7 +25,7 @@ export function demoSeed(): Record<string, Row[]> {
   const y = -1; // the example shift ran last night
   return {
     app_logins: [
-      { id: 'l1', label: 'Demo admin', email: 'admin@demo.local', role: 'admin', active: true },
+      { id: 'l1', label: 'Demo system admin', email: 'admin@demo.local', role: 'admin', active: true },
       { id: 'l2', label: 'Demo office', email: 'office@demo.local', role: 'office', active: true },
       { id: 'l3', label: 'Demo supervisor', email: 'supervisor@demo.local', role: 'supervisor', active: true },
       { id: 'l4', label: 'Crew phone 1', phone: '0400 000 001', role: 'driver', active: true },

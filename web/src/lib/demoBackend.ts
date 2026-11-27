@@ -83,7 +83,7 @@ export class DemoBackend implements Backend {
     const mineP = this.myPeople(); const mineW = this.myPhones();
     if (!existing) {
       const forOthers = (saved.assigned_phone_id && !mineW.includes(saved.assigned_phone_id)) || (saved.assigned_person_ids ?? []).some((x: string) => !mineP.includes(x));
-      if (forOthers && !canEdit(p, 'docket_assign')) throw new Error('Only supervisor, office or admin can assign dockets to someone else (Settings: Assign dockets and roster).');
+      if (forOthers && !canEdit(p, 'docket_assign')) throw new Error('Only supervisor, office or system admin (SYS.ADM) can assign dockets to someone else (Settings: Assign dockets and roster).');
       if (saved.assigned_phone_id || (saved.assigned_person_ids ?? []).length) { saved.assigned_at = now; saved.assigned_by = this.session?.userId; }
       if (saved.status === 'closed') { saved.completed_at ??= now; saved.review_status ??= 'to_review'; }
       return;
@@ -91,7 +91,7 @@ export class DemoBackend implements Backend {
     const changed = (saved.assigned_phone_id ?? null) !== (existing.assigned_phone_id ?? null)
       || JSON.stringify(saved.assigned_person_ids ?? []) !== JSON.stringify(existing.assigned_person_ids ?? []);
     if (changed) {
-      if (!canEdit(p, 'docket_assign')) throw new Error('Only supervisor, office or admin can reassign or cancel a docket assignment (Settings: Assign dockets and roster).');
+      if (!canEdit(p, 'docket_assign')) throw new Error('Only supervisor, office or system admin (SYS.ADM) can reassign or cancel a docket assignment (Settings: Assign dockets and roster).');
       saved.assigned_at = now; saved.assigned_by = this.session?.userId;
     }
     if (existing.review_status === 'reviewed' && !(admin || canEdit(p, 'docket_review'))) throw new Error('This docket has been reviewed and is locked. Ask a supervisor to reopen it.');
@@ -162,9 +162,9 @@ export class DemoBackend implements Backend {
   }
   async myPermissions() { return this.perms(); }
   async claimFirstAdmin() {
-    if (this.t('app_logins').some(l => l.role === 'admin' && l.active !== false)) return 'An admin already exists. Ask them to add you.';
-    this.t('app_logins').push({ id: uuid(), label: 'First admin', email: this.session?.email, phone: this.session?.phone, role: 'admin', active: true });
-    this.persist(); return 'You are now the admin.';
+    if (this.t('app_logins').some(l => l.role === 'admin' && l.active !== false)) return 'A system admin (SYS.ADM) already exists. Ask them to add you.';
+    this.t('app_logins').push({ id: uuid(), label: 'First system admin', email: this.session?.email, phone: this.session?.phone, role: 'admin', active: true });
+    this.persist(); return 'You are now the system admin (SYS.ADM).';
   }
   // ---------- new drivers (same rules as the database's add/approve/pair_pending_driver) ----------
   private loginName() {
@@ -212,7 +212,7 @@ export class DemoBackend implements Backend {
     if (!t || t.pending || t.active === false || t.id === personId) throw new Error('Pick an active driver to pair the hours to.');
     if (surname(t.full_name) !== surname(v.full_name)) throw new Error(`Hours can only be paired to someone with the same surname as ${v.full_name}.`);
     const lines = this.t('timesheet_lines');
-    if (lines.some(l => l.person_id === personId && l.status === 'approved')) throw new Error(`Some of ${v.full_name}'s days are already approved. Ask an admin to reopen them first.`);
+    if (lines.some(l => l.person_id === personId && l.status === 'approved')) throw new Error(`Some of ${v.full_name}'s days are already approved. Ask a system admin (SYS.ADM) to reopen them first.`);
     let days = 0; const touched = new Set<string>();
     // a day the person already has is kept as a clash for the approver to resolve
     for (const l of lines.filter(x => x.person_id === personId)) {
@@ -248,7 +248,7 @@ export class DemoBackend implements Backend {
     const lines = this.t('timesheet_lines');
     const k = lines.find(l => l.id === keepId); const r = lines.find(l => l.id === removeId);
     if (!k || !r || !(k.clash_with === r.id || r.clash_with === k.id)) throw new Error('These two lines are not a clash.');
-    if (k.status === 'approved' || r.status === 'approved') throw new Error('One of these lines is already approved. Ask an admin to reopen it first.');
+    if (k.status === 'approved' || r.status === 'approved') throw new Error('One of these lines is already approved. Ask a system admin (SYS.ADM) to reopen it first.');
     lines.splice(lines.indexOf(r), 1);
     const h = amend.total_hours;
     Object.assign(k, { clash_with: null, clash_from: null, updated_at: new Date().toISOString(),
@@ -364,7 +364,7 @@ export class DemoBackend implements Backend {
       saved.version = 1; saved.status ??= 'draft'; saved.data ??= {}; return;
     }
     if (body.version !== undefined && body.version !== (existing.version ?? 1)) throw Object.assign(new Error(STALE_FORM), { code: '40001' });
-    if (existing.status === 'approved' && this.role() !== 'admin') throw new Error('This form is approved and locked. Only an admin can change it.');
+    if (existing.status === 'approved' && this.role() !== 'admin') throw new Error('This form is approved and locked. Only a system admin (SYS.ADM) can change it.');
     if (['approved', 'returned'].includes(saved.status) && saved.status !== existing.status && !canEdit(p, 'approvals')) throw new Error('Only someone with Timesheet approvals can approve or return a form.');
     if (saved.status === 'approved' && existing.status !== 'approved') { saved.approved_by = this.session?.userId; saved.approved_at = new Date().toISOString(); }
     saved.version = (existing.version ?? 1) + 1; saved.updated_by = this.session?.userId;
@@ -390,7 +390,7 @@ export class DemoBackend implements Backend {
     const existing = idx >= 0 ? list[idx] : undefined;
     if (!this.canWrite(table, existing, body)) throw new Error('Your role does not have edit access to ' + table);
     if (table === 'roles' && existing?.is_system && body.code && body.code !== existing.code) throw new Error('Built-in role codes cannot change. Change the name instead.');
-    if (table === 'roles' && existing?.code === 'admin' && body.active === false) throw new Error('The admin role must stay active.');
+    if (table === 'roles' && existing?.code === 'admin' && body.active === false) throw new Error('The system admin (SYS.ADM) role must stay active.');
     const now = new Date().toISOString();
     if (table === 'dockets' && existing && body.version !== undefined && body.version !== (existing.version ?? 1)) throw Object.assign(new Error(STALE_DOCKET), { code: '40001' });
     const saved: Row = existing

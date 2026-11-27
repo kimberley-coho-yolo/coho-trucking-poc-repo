@@ -20,7 +20,7 @@ select pg_temp.check((select count(*) from public.people_for_my_phone()) = 2, 'n
 -- first admin claim
 select pg_temp.as_user('aaaaaaaa-0000-0000-0000-000000000009', 'boss@example.com', null);
 select pg_temp.check(public.app_role() is null, 'unknown email has no role');
-select pg_temp.check(public.claim_first_admin('Test admin') = 'You are now the admin.', 'first admin claim works');
+select pg_temp.check(public.claim_first_admin('Test admin') = 'You are now the system admin (SYS.ADM).', 'first admin claim works');
 select pg_temp.check(public.app_role() = 'admin', 'claimed user is admin');
 select pg_temp.as_user('aaaaaaaa-0000-0000-0000-000000000008', 'other@example.com', null);
-select pg_temp.check(public.claim_first_admin() like 'An admin already exists%', 'second claim refused');
+select pg_temp.check(public.claim_first_admin() like 'A system admin (SYS.ADM) already exists%', 'second claim refused');

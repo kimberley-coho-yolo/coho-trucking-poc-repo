@@ -106,7 +106,7 @@ export default function Settings() {
       <li>Pick a role at the top. Each function in the app is set to <b>Hidden</b> (not shown at all), <b>Read only</b> (can look, cannot change) or <b>Edit</b>.</li>
       <li>Tap the choice you want for each function, then tap <b>Save access</b>. People with that role see the change the next time they open the app.</li>
       <li><b>New role</b> creates a role (for example HSE or Payroll) and copies its starting access from an existing role. Then give people that role under <b>Admin &gt; Logins and roles</b>.</li>
-      <li>Admin always has full access so someone can always fix these settings. Integrations, Logins and these Settings can only ever be edited by admin.</li>
+      <li>The system admin (SYS.ADM) always has full access so someone can always fix these settings. Integrations, Logins and these Settings can only ever be edited by the system admin (SYS.ADM).</li>
       <li>The database enforces these settings too, so hidden or read-only data cannot be reached another way.</li>
     </ol>}>
       <TimesheetSettings />
@@ -142,7 +142,7 @@ export default function Settings() {
         </div>}
 
         {sel === 'admin'
-          ? <p className="note">Admin can do everything: every function is set to Edit and cannot be restricted, so there is always someone who can manage logins, integrations, reports and these settings.</p>
+          ? <p className="note">The system admin (SYS.ADM) can do everything: every function is set to Edit and cannot be restricted, so there is always someone who can manage logins, integrations, reports and these settings.</p>
           : <EditOnly><div className="row" style={{ margin: '8px 0' }}>
               <span className="muted">Quick set:</span>
               <button className="small" onClick={() => setAll('hidden')}>All hidden</button>
@@ -170,8 +170,8 @@ export default function Settings() {
                         disabled={readOnly || !ok.includes(a)}
                         onClick={() => setDraft({ ...draft, [f.code]: a })}>{LEVEL_LABEL[a]}</button>))}
                   </div>
-                  {sel !== 'admin' && f.admin_only_edit && <div className="lock">Only admin can edit</div>}
-                  {sel !== 'admin' && !f.admin_only_edit && f.max_level === 'read' && <div className="lock">Admin only can edit</div>}
+                  {sel !== 'admin' && f.admin_only_edit && <div className="lock">Only SYS.ADM can edit</div>}
+                  {sel !== 'admin' && !f.admin_only_edit && f.max_level === 'read' && <div className="lock">Only SYS.ADM can edit</div>}
                 </td>
               </tr>;
             })}

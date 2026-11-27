@@ -45,7 +45,7 @@ export class SupabaseBackend implements Backend {
     return (data as Perms) ?? {};
   }
   async claimFirstAdmin() {
-    const { data, error } = await this.sb.rpc('claim_first_admin', { p_label: 'First admin' });
+    const { data, error } = await this.sb.rpc('claim_first_admin', { p_label: 'First system admin' });
     if (error) throw error;
     return data as string;
   }

@@ -47,7 +47,7 @@ export default function DataPage() {
       <li><b>Upload spreadsheet</b>: choose a table, choose a CSV or Excel file, check the column matching and the preview, then <b>Import</b>.</li>
       <li><b>Download</b>: any table as CSV or Excel.</li>
       <li><b>Browse tables</b>: look at any table, search, download.</li>
-      <li><b>Query (SQL)</b>: read-only SELECT queries for admin and office, e.g. <code>select * from v_daily_customer</code>.</li>
+      <li><b>Query (SQL)</b>: read-only SELECT queries for system admin (SYS.ADM) and office, e.g. <code>select * from v_daily_customer</code>.</li>
       <li><b>Km matching</b>: after uploading GPS trips, split km into customer dockets and travel.</li>
     </ol>}>
       <div className="tabs">{tabs.map(t => <button key={t} className={tab === t ? 'on' : ''} onClick={() => setQ({ tab: t })}>{TAB_LABEL[t]}</button>)}</div>

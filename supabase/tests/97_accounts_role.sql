@@ -26,3 +26,8 @@ select pg_temp.check((select count(*) from public.dockets) = current_setting('t.
 select pg_temp.check(not public.can_edit('accounts_reports'), 'the Accounts reports are read only');
 reset role;
 delete from public.app_logins where email = 'accounts@example.com';
+
+-- 27/11/2026: Admin is shown as System admin (SYS.ADM); same code and full access
+select pg_temp.check((select label from public.roles where code = 'admin') = 'System admin (SYS.ADM)', 'admin role is called System admin (SYS.ADM)');
+select pg_temp.check((select count(*) from public.features where grp = 'Admin only') = 0 and (select count(*) from public.features where grp = 'System admin (SYS.ADM) only') = 4, 'Admin only group renamed');
+select pg_temp.check(position('Ask an admin' in pg_get_functiondef('public.resolve_timesheet_clash(uuid,uuid,numeric,text,text)'::regprocedure)) = 0, 'database messages say system admin (SYS.ADM)');

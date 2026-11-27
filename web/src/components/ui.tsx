@@ -283,7 +283,7 @@ export function Guard({ access, children }: { access: Access; children: ReactNod
   if (access === 'hidden') return (
     <section className="page narrow">
       <h1>Not available</h1>
-      <p>Your role does not have access to this screen. If you need it, ask an admin to change your role's access in <b>Settings</b>.</p>
+      <p>Your role does not have access to this screen. If you need it, ask a system admin (SYS.ADM) to change your role's access in <b>Settings</b>.</p>
       <Link className="button" to="/">Back to home</Link>
     </section>
   );
